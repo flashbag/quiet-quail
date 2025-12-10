@@ -4,6 +4,8 @@ __pycache__/
 *.pyd
 saved_html/*
 !saved_html/.gitkeep
+saved_json/*
+!saved_json/.gitkeep
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db
