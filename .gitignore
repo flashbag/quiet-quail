@@ -1,0 +1,39 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+saved_html/*
+!saved_html/.gitkeep
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+.env
+*.tmp
+*.bak
+*.swp
+
+# Logs
+*.log
+debug.log
+cron.log
+*.log.*
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Backup files
+*.backup
+*.backup.*
+/etc/resolv.conf.backup*
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
