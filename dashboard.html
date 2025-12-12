@@ -309,28 +309,14 @@
 
         <!-- Statistics Row -->
         <div class="row" id="statsContainer">
-            <div class="col-md-3 col-sm-6">
+            <div class="col-md-6 col-sm-6">
                 <div class="stat-card total">
                     <div class="stat-icon"><i class="fas fa-briefcase"></i></div>
                     <div class="stat-label">Total Posts</div>
                     <div class="stat-number" id="totalPosts">-</div>
                 </div>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card open">
-                    <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
-                    <div class="stat-label">Open Positions</div>
-                    <div class="stat-number" id="openPosts">-</div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card closed">
-                    <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
-                    <div class="stat-label">Closed Positions</div>
-                    <div class="stat-number" id="closedPosts">-</div>
-                </div>
-            </div>
-            <div class="col-md-3 col-sm-6">
+            <div class="col-md-6 col-sm-6">
                 <div class="stat-card updates">
                     <div class="stat-icon"><i class="fas fa-sync"></i></div>
                     <div class="stat-label">Data Files</div>
@@ -600,19 +586,13 @@
 
         function updateStats() {
             let totalPosts = 0;
-            let openPosts = 0;
-            let closedPosts = 0;
 
             // Use unique posts for accurate stats
             window.uniquePosts.forEach(post => {
                 totalPosts++;
-                if (post.status === 'open') openPosts++;
-                else if (post.status === 'closed') closedPosts++;
             });
 
             document.getElementById('totalPosts').textContent = totalPosts.toLocaleString();
-            document.getElementById('openPosts').textContent = openPosts.toLocaleString();
-            document.getElementById('closedPosts').textContent = closedPosts.toLocaleString();
         }
 
         function updateTimeline() {
