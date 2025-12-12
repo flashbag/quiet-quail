@@ -782,6 +782,7 @@
                             throw new Error(`HTTP error! status: ${dataResponse.status}`);
                         }
                         const data = await dataResponse.json();
+                        data.filePath = file.path; // Store file path for later use
                         allData.push(data);
                     } catch (e) {
                         console.warn(`Could not load ${file.path}:`, e.message);
@@ -1481,12 +1482,30 @@
             
             // Jobs discovered by day chart
             try {
-                // Count jobs per day (file)
-                const jobsByDay = allData.map((file, index) => ({
-                    day: index + 1,
-                    date: file.date || `Day ${index + 1}`,
-                    count: file.posts.length
-                }));
+                // Count jobs per day (file) and extract real dates from filenames
+                const jobsByDay = allData.map((file, index) => {
+                    // Extract date from file path: saved_html/2025/10/21/output_20251021_112750.html
+                    let dateLabel = `Day ${index + 1}`;
+                    let dateObj = null;
+                    
+                    if (file.filePath) {
+                        // Try to extract from saved_html path first
+                        const pathMatch = file.filePath.match(/saved_html\/(\d{4})\/(\d{2})\/(\d{2})/);
+                        if (pathMatch) {
+                            const [, year, month, day] = pathMatch;
+                            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                            dateLabel = `${monthNames[parseInt(month) - 1]} ${parseInt(day)}`;
+                            dateObj = new Date(`${year}-${month}-${day}`);
+                        }
+                    }
+                    
+                    return {
+                        day: index + 1,
+                        dateLabel: dateLabel,
+                        dateObj: dateObj,
+                        count: file.posts.length
+                    };
+                });
                 
                 const canvasElement = document.getElementById('jobsByDayChart');
                 if (!canvasElement) {
@@ -1504,17 +1523,17 @@
                         window.jobsByDayChart = new Chart(ctx, {
                             type: 'line',
                             data: {
-                                labels: jobsByDay.map(d => `Day ${d.day}`),
+                                labels: jobsByDay.map(d => d.dateLabel),
                                 datasets: [{
                                     label: 'Jobs Discovered',
                                     data: jobsByDay.map(d => d.count),
-                                    borderColor: '#0d6efd',
-                                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                                    borderColor: '#555',
+                                    backgroundColor: 'rgba(85, 85, 85, 0.1)',
                                     borderWidth: 2,
                                     fill: true,
                                     tension: 0.4,
                                     pointRadius: 4,
-                                    pointBackgroundColor: '#0d6efd',
+                                    pointBackgroundColor: '#555',
                                     pointBorderColor: 'white',
                                     pointBorderWidth: 2
                                 }]
