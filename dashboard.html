@@ -699,6 +699,12 @@
         }
 
         function displayJobTracking() {
+            // Check if Chart.js is available
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js not loaded');
+                return;
+            }
+            
             // Calculate job tracking statistics
             const jobStats = {};
             const unitStats = {};
@@ -752,27 +758,40 @@
             
             // Persistence Chart
             try {
-                const persistenceCtx = document.getElementById('persistenceChart').getContext('2d');
-                if (window.persistenceChart) window.persistenceChart.destroy();
-                window.persistenceChart = new Chart(persistenceCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: appearanceRange.map(r => r.range),
-                        datasets: [{
-                            data: appearanceRange.map(r => r.count),
-                            backgroundColor: ['#198754', '#0d6efd', '#0dcaf0', '#ffc107', '#dc3545']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            }
+                const canvasElement = document.getElementById('persistenceChart');
+                if (!canvasElement) {
+                    console.error('persistenceChart canvas not found');
+                } else {
+                    const persistenceCtx = canvasElement.getContext('2d');
+                    if (!persistenceCtx) {
+                        console.error('Could not get 2D context for persistenceChart');
+                    } else {
+                        // Destroy previous chart if it exists
+                        if (window.persistenceChart && typeof window.persistenceChart.destroy === 'function') {
+                            window.persistenceChart.destroy();
                         }
+                        
+                        window.persistenceChart = new Chart(persistenceCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: appearanceRange.map(r => r.range),
+                                datasets: [{
+                                    data: appearanceRange.map(r => r.count),
+                                    backgroundColor: ['#198754', '#0d6efd', '#0dcaf0', '#ffc107', '#dc3545']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom'
+                                    }
+                                }
+                            }
+                        });
                     }
-                });
+                }
             } catch (e) {
                 console.warn('Could not render persistence chart:', e);
             }
@@ -783,34 +802,47 @@
                 .slice(0, 8);
             
             try {
-                const unitsCtx = document.getElementById('unitsChartTracking').getContext('2d');
-                if (window.unitsChartTracking) window.unitsChartTracking.destroy();
-                window.unitsChartTracking = new Chart(unitsCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: topUnits.map(([unit, count]) => unit.substring(0, 30) + '...'),
-                        datasets: [{
-                            label: 'Job Positions',
-                            data: topUnits.map(([unit, count]) => count),
-                            backgroundColor: '#0d6efd'
-                        }]
-                    },
-                    options: {
-                        indexAxis: 'y',
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            x: {
-                                beginAtZero: true
-                            }
+                const canvasElement = document.getElementById('unitsChartTracking');
+                if (!canvasElement) {
+                    console.error('unitsChartTracking canvas not found');
+                } else {
+                    const unitsCtx = canvasElement.getContext('2d');
+                    if (!unitsCtx) {
+                        console.error('Could not get 2D context for unitsChartTracking');
+                    } else {
+                        // Destroy previous chart if it exists
+                        if (window.unitsChartTracking && typeof window.unitsChartTracking.destroy === 'function') {
+                            window.unitsChartTracking.destroy();
                         }
+                        
+                        window.unitsChartTracking = new Chart(unitsCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: topUnits.map(([unit, count]) => unit.substring(0, 30) + '...'),
+                                datasets: [{
+                                    label: 'Job Positions',
+                                    data: topUnits.map(([unit, count]) => count),
+                                    backgroundColor: '#0d6efd'
+                                }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
                     }
-                });
+                }
             } catch (e) {
                 console.warn('Could not render units chart:', e);
             }
