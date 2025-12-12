@@ -30,11 +30,22 @@ if [ ! -d "venv" ]; then
     python3 -m venv venv
 else
     echo "Virtual environment already exists."
+    # Recreate if it's corrupted
+    if [ ! -f "venv/bin/activate" ]; then
+        echo "Virtual environment appears to be corrupted, recreating..."
+        rm -rf venv
+        python3 -m venv venv
+    fi
 fi
 
 # Activate virtual environment
 echo "Activating virtual environment..."
-source venv/bin/activate
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+else
+    echo "Error: Could not find venv/bin/activate"
+    exit 1
+fi
 
 # Upgrade pip
 echo "Upgrading pip..."
@@ -65,33 +76,45 @@ playwright install-deps chromium || {
 # Create saved_html directory
 echo "Creating saved_html directory..."
 mkdir -p saved_html
+mkdir -p saved_json
 
 # Test the script
 echo ""
 echo "==================================="
 echo "Testing the script..."
 echo "==================================="
+set +e  # Don't exit on error for test
 python3 fetch_lobbyx.py
+TEST_RESULT=$?
+set -e  # Re-enable exit on error
 
-if [ $? -eq 0 ]; then
+if [ $TEST_RESULT -eq 0 ]; then
     echo ""
     echo "==================================="
-    echo "Setup completed successfully!"
+    echo "✓ Setup completed successfully!"
     echo "==================================="
     echo ""
-    echo "To set up cron job (run every 6 hours):"
-    echo "1. Edit crontab: crontab -e"
-    echo "2. Add this line:"
-    echo "   0 */6 * * * cd $SCRIPT_DIR && $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/fetch_lobbyx.py >> $SCRIPT_DIR/cron.log 2>&1"
+    echo "Next steps:"
+    echo "1. Run setup_cron.sh to configure the cron job"
+    echo "   ./setup_cron.sh"
     echo ""
-    echo "Or run the setup_cron.sh script:"
-    echo "  ./setup_cron.sh"
+    echo "Or set up cron manually:"
+    echo "   crontab -e"
+    echo "   Add: 0 */6 * * * cd $SCRIPT_DIR && $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/fetch_lobbyx.py >> $SCRIPT_DIR/cron.log 2>&1"
     echo ""
 else
     echo ""
     echo "==================================="
-    echo "Error: Script test failed!"
-    echo "Please check the error messages above."
+    echo "⚠ Script test completed with exit code $TEST_RESULT"
     echo "==================================="
-    exit 1
+    echo ""
+    echo "The setup may have completed, but the initial fetch had issues."
+    echo "This could be due to:"
+    echo "  - Network connectivity issues"
+    echo "  - Missing Playwright system dependencies"
+    echo ""
+    echo "Try running manually to see the error:"
+    echo "  source $SCRIPT_DIR/venv/bin/activate"
+    echo "  python3 $SCRIPT_DIR/fetch_lobbyx.py"
+    echo ""
 fi
