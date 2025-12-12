@@ -414,6 +414,21 @@
                         <div style="position: relative; height: 300px;">
                             <canvas id="persistenceChart"></canvas>
                         </div>
+                        <!-- Detailed Persistence Breakdown -->
+                        <div style="margin-top: 20px; max-height: 250px; overflow-y: auto;">
+                            <table class="table table-sm table-hover" style="font-size: 0.85rem; margin-bottom: 0;">
+                                <thead style="background: #e9ecef; position: sticky; top: 0;">
+                                    <tr>
+                                        <th>Appearance Range</th>
+                                        <th class="text-end">Jobs</th>
+                                        <th class="text-end">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="persistenceTableBody">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <div class="col-lg-6 mb-4">
@@ -746,15 +761,49 @@
             document.getElementById('trackingNew').textContent = oneTimeJobs;
             document.getElementById('trackingAvg').textContent = avgAppearances;
             
-            // Distribution of job persistence
+            // Distribution of job persistence - detailed breakdown
             const appearances = Object.values(jobStats).map(j => j.appearances);
+            const maxAppearances = allData.length;
+            
+            // Create more detailed ranges
             const appearanceRange = [
-                { range: 'All scrapes', count: appearances.filter(a => a === allData.length).length },
-                { range: '16-21 scrapes', count: appearances.filter(a => a >= 16 && a < allData.length).length },
-                { range: '11-15 scrapes', count: appearances.filter(a => a >= 11 && a < 16).length },
-                { range: '6-10 scrapes', count: appearances.filter(a => a >= 6 && a < 11).length },
-                { range: '1-5 scrapes', count: appearances.filter(a => a < 6).length }
+                { 
+                    range: `All ${maxAppearances} scrapes`, 
+                    count: appearances.filter(a => a === maxAppearances).length,
+                    color: '#198754',
+                    percentage: 0
+                },
+                { 
+                    range: `${Math.ceil(maxAppearances * 0.75)}-${maxAppearances - 1} scrapes`, 
+                    count: appearances.filter(a => a >= Math.ceil(maxAppearances * 0.75) && a < maxAppearances).length,
+                    color: '#0d6efd',
+                    percentage: 0
+                },
+                { 
+                    range: `${Math.ceil(maxAppearances * 0.5)}-${Math.ceil(maxAppearances * 0.75) - 1} scrapes`, 
+                    count: appearances.filter(a => a >= Math.ceil(maxAppearances * 0.5) && a < Math.ceil(maxAppearances * 0.75)).length,
+                    color: '#0dcaf0',
+                    percentage: 0
+                },
+                { 
+                    range: `${Math.ceil(maxAppearances * 0.25)}-${Math.ceil(maxAppearances * 0.5) - 1} scrapes`, 
+                    count: appearances.filter(a => a >= Math.ceil(maxAppearances * 0.25) && a < Math.ceil(maxAppearances * 0.5)).length,
+                    color: '#ffc107',
+                    percentage: 0
+                },
+                { 
+                    range: `1-${Math.ceil(maxAppearances * 0.25) - 1} scrapes`, 
+                    count: appearances.filter(a => a < Math.ceil(maxAppearances * 0.25)).length,
+                    color: '#dc3545',
+                    percentage: 0
+                }
             ];
+            
+            // Calculate percentages
+            const totalCount = appearanceRange.reduce((sum, r) => sum + r.count, 0);
+            appearanceRange.forEach(r => {
+                r.percentage = totalCount > 0 ? ((r.count / totalCount) * 100).toFixed(1) : 0;
+            });
             
             // Persistence Chart
             try {
@@ -774,10 +823,12 @@
                         window.persistenceChart = new Chart(persistenceCtx, {
                             type: 'doughnut',
                             data: {
-                                labels: appearanceRange.map(r => r.range),
+                                labels: appearanceRange.map(r => `${r.range}\n(${r.count} jobs, ${r.percentage}%)`),
                                 datasets: [{
                                     data: appearanceRange.map(r => r.count),
-                                    backgroundColor: ['#198754', '#0d6efd', '#0dcaf0', '#ffc107', '#dc3545']
+                                    backgroundColor: appearanceRange.map(r => r.color),
+                                    borderColor: '#fff',
+                                    borderWidth: 2
                                 }]
                             },
                             options: {
@@ -785,11 +836,44 @@
                                 maintainAspectRatio: false,
                                 plugins: {
                                     legend: {
-                                        position: 'bottom'
+                                        position: 'bottom',
+                                        labels: {
+                                            font: { size: 11 },
+                                            padding: 15
+                                        }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const range = appearanceRange[context.dataIndex];
+                                                return `${range.range}: ${range.count} jobs (${range.percentage}%)`;
+                                            }
+                                        }
                                     }
                                 }
                             }
                         });
+                        
+                        // Log detailed persistence breakdown
+                        console.log('📊 Job Persistence Distribution:');
+                        appearanceRange.forEach(r => {
+                            const bar = '█'.repeat(Math.ceil(r.percentage / 5));
+                            console.log(`  ${r.range.padEnd(25)} │ ${bar} ${r.count} jobs (${r.percentage}%)`);
+                        });
+                        
+                        // Populate detailed table
+                        const tableBody = document.getElementById('persistenceTableBody');
+                        if (tableBody) {
+                            tableBody.innerHTML = appearanceRange
+                                .map(r => `
+                                    <tr style="border-left: 4px solid ${r.color}; background: rgba(255,255,255,0.5);">
+                                        <td><small>${r.range}</small></td>
+                                        <td class="text-end"><strong>${r.count}</strong></td>
+                                        <td class="text-end"><small>${r.percentage}%</small></td>
+                                    </tr>
+                                `)
+                                .join('');
+                        }
                     }
                 }
             } catch (e) {
