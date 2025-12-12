@@ -320,12 +320,12 @@
         <!-- Filters -->
         <div class="filter-section">
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="search-box">
                         <input type="text" class="form-control" id="searchInput" placeholder="Search positions or units...">
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <select class="form-select" id="appearanceFilter">
                         <option value="">All Appearances</option>
                         <option value="1">1 time only</option>
@@ -334,6 +334,15 @@
                         <option value="11-15">11-15 times</option>
                         <option value="16-22">16-22 times</option>
                         <option value="23">All 23 scrapes</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="sortFilter">
+                        <option value="">Sort by...</option>
+                        <option value="position">Position (A-Z)</option>
+                        <option value="unit">Unit (A-Z)</option>
+                        <option value="appearances_desc">Most Appearances</option>
+                        <option value="appearances_asc">Least Appearances</option>
                     </select>
                 </div>
             </div>
@@ -728,12 +737,14 @@
         function setupFilters() {
             const searchInput = document.getElementById('searchInput');
             const appearanceFilter = document.getElementById('appearanceFilter');
+            const sortFilter = document.getElementById('sortFilter');
 
             function applyFilters() {
                 const searchTerm = searchInput.value.toLowerCase();
                 const appearanceValue = appearanceFilter.value;
+                const sortValue = sortFilter.value;
 
-                const filtered = (window.uniquePosts || []).filter(post => {
+                let filtered = (window.uniquePosts || []).filter(post => {
                     const matchesSearch = !searchTerm || 
                         post.position.toLowerCase().includes(searchTerm) ||
                         post.unit_name.toLowerCase().includes(searchTerm);
@@ -761,11 +772,31 @@
                     return matchesSearch && matchesAppearance;
                 });
 
+                // Apply sorting
+                if (sortValue === 'position') {
+                    filtered.sort((a, b) => a.position.localeCompare(b.position));
+                } else if (sortValue === 'unit') {
+                    filtered.sort((a, b) => a.unit_name.localeCompare(b.unit_name));
+                } else if (sortValue === 'appearances_desc') {
+                    filtered.sort((a, b) => {
+                        const appA = window.jobAppearances[a.post_id] || 1;
+                        const appB = window.jobAppearances[b.post_id] || 1;
+                        return appB - appA;
+                    });
+                } else if (sortValue === 'appearances_asc') {
+                    filtered.sort((a, b) => {
+                        const appA = window.jobAppearances[a.post_id] || 1;
+                        const appB = window.jobAppearances[b.post_id] || 1;
+                        return appA - appB;
+                    });
+                }
+
                 displayJobs(filtered);
             }
 
             searchInput.addEventListener('input', applyFilters);
             appearanceFilter.addEventListener('change', applyFilters);
+            sortFilter.addEventListener('change', applyFilters);
         }
 
         function showJobsByPersistenceRange(range, jobStats, allData) {
