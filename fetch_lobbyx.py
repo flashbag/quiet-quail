@@ -1,6 +1,7 @@
 import time
 import os
 import logging
+import subprocess
 from playwright.sync_api import sync_playwright
 
 # Configure logging for maximum debug output
@@ -59,3 +60,37 @@ with sync_playwright() as p:
 
     browser.close()
     logging.debug("Browser closed.")
+
+# Automatically parse the HTML to JSON
+logging.debug("Starting HTML to JSON parsing...")
+try:
+    result = subprocess.run(
+        ["python3", "parse_html_to_json.py"],
+        capture_output=True,
+        text=True,
+        timeout=300
+    )
+    if result.returncode == 0:
+        logging.debug("HTML to JSON parsing completed successfully")
+    else:
+        logging.warning(f"HTML to JSON parsing had issues: {result.stderr}")
+except Exception as e:
+    logging.warning(f"Could not run parse_html_to_json.py: {e}")
+
+# Generate dashboard API file
+logging.debug("Generating dashboard API file...")
+try:
+    result = subprocess.run(
+        ["python3", "generate_dashboard_api.py"],
+        capture_output=True,
+        text=True,
+        timeout=60
+    )
+    if result.returncode == 0:
+        logging.debug("Dashboard API file generated successfully")
+    else:
+        logging.warning(f"Dashboard API generation had issues: {result.stderr}")
+except Exception as e:
+    logging.warning(f"Could not run generate_dashboard_api.py: {e}")
+
+logging.debug("Script execution completed.")

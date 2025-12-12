@@ -42,10 +42,12 @@ Quiet-Quail/
    ```bash
    python3 fetch_lobbyx.py
    ```
+   This automatically parses HTML to JSON after scraping.
 
-3. **Parse HTML to JSON:**
+3. **View the dashboard:**
    ```bash
-   python3 parse_html_to_json.py
+   python3 -m http.server 8000
+   # Visit http://localhost:8000/dashboard.html
    ```
 
 ### Server Deployment

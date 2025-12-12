@@ -41,6 +41,8 @@ if ssh "$SERVER" "command -v rsync" &> /dev/null; then
         --exclude 'venv/' \
         fetch_lobbyx.py \
         parse_html_to_json.py \
+        generate_dashboard_api.py \
+        dashboard.html \
         requirements.txt \
         setup_server.sh \
         setup_cron.sh \
@@ -49,6 +51,8 @@ else
     echo "rsync not found on server, using scp instead..."
     scp fetch_lobbyx.py \
         parse_html_to_json.py \
+        generate_dashboard_api.py \
+        dashboard.html \
         requirements.txt \
         setup_server.sh \
         setup_cron.sh \

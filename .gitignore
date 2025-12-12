@@ -20,6 +20,9 @@ debug.log
 cron.log
 *.log.*
 
+# Dashboard API
+api/
+
 # Virtual environments
 venv/
 .venv/
