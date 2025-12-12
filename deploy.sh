@@ -42,6 +42,7 @@ if ssh "$SERVER" "command -v rsync" &> /dev/null; then
         fetch_lobbyx.py \
         parse_html_to_json.py \
         generate_dashboard_api.py \
+        dashboard_server.py \
         dashboard.html \
         requirements.txt \
         setup_server.sh \
@@ -52,6 +53,7 @@ else
     scp fetch_lobbyx.py \
         parse_html_to_json.py \
         generate_dashboard_api.py \
+        dashboard_server.py \
         dashboard.html \
         requirements.txt \
         setup_server.sh \

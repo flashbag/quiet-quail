@@ -389,58 +389,66 @@
         // Load JSON files
         async function loadData() {
             try {
-                // Get list of JSON files
-                const response = await fetch('api/list-json-files.json');
-                const fileList = await response.json();
+                // Get list of JSON files from API
+                const response = await fetch('/api/files');
+                const fileData = await response.json();
                 
-                document.getElementById('fileCount').textContent = fileList.files.length;
+                const fileList = fileData.files || [];
+                document.getElementById('fileCount').textContent = fileList.length;
                 
                 // Load all JSON files
-                for (const file of fileList.files) {
+                for (const file of fileList) {
                     try {
-                        const dataResponse = await fetch(`saved_json/${file}`);
+                        const dataResponse = await fetch(`/${file.path}`);
+                        if (!dataResponse.ok) {
+                            throw new Error(`HTTP error! status: ${dataResponse.status}`);
+                        }
                         const data = await dataResponse.json();
                         allData.push(data);
                     } catch (e) {
-                        console.warn(`Could not load ${file}:`, e);
+                        console.warn(`Could not load ${file.path}:`, e.message);
                     }
                 }
                 
                 // Process and display data
-                processData();
-                updateTimeline();
-                updateStats();
-                displayUnits();
-                displayJobs();
-                setupFilters();
+                if (allData.length > 0) {
+                    processData();
+                    updateTimeline();
+                    updateStats();
+                    displayUnits();
+                    displayJobs();
+                    setupFilters();
+                } else {
+                    throw new Error('No data files loaded');
+                }
                 
             } catch (e) {
                 console.error('Error loading data:', e);
-                // Fallback: try to load from a direct sample
-                loadSampleData();
+                showErrorMessage();
             }
         }
 
-        // Fallback: Load sample data
-        async function loadSampleData() {
-            try {
-                // Try to load the most recent JSON file
-                const response = await fetch('saved_json/2025/12/10/output_20251210_202928.json');
-                const data = await response.json();
-                allData = [data];
-                
-                document.getElementById('fileCount').textContent = '1';
-                processData();
-                updateTimeline();
-                updateStats();
-                displayUnits();
-                displayJobs();
-                setupFilters();
-            } catch (e) {
-                console.error('Could not load sample data:', e);
-                document.getElementById('statsContainer').innerHTML = 
-                    '<div class="no-data col-12">No data available. Please run the scraper first.</div>';
-            }
+        function showErrorMessage() {
+            const message = `
+                <div class="alert alert-warning mt-3" role="alert">
+                    <strong>Note:</strong> This dashboard requires a local server to load the data properly due to browser security restrictions.
+                    <br><br>
+                    <strong>To view the dashboard:</strong>
+                    <ol>
+                        <li>Run the dashboard server: <code>python3 dashboard_server.py</code></li>
+                        <li>Open in browser: <code>http://localhost:8000</code></li>
+                    </ol>
+                    Or use Python's built-in server:
+                    <br><code>python3 -m http.server 8000</code>
+                    <br><br>
+                    <small>Make sure you're in the project directory when running the server.</small>
+                </div>
+            `;
+            
+            document.getElementById('statsContainer').innerHTML = message;
+            document.getElementById('timelineContainer').innerHTML = '';
+            document.getElementById('unitsContainer').innerHTML = '';
+            document.getElementById('jobsContainer').innerHTML = '';
         }
 
         function processData() {
