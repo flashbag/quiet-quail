@@ -685,7 +685,13 @@
                 return;
             }
 
-            const jobsHTML = posts.slice(0, 50).map(post => `
+            const jobsHTML = posts.slice(0, 50).map(post => {
+                // Get appearance count for this job
+                const appearanceCount = window.jobAppearances && window.jobAppearances[post.post_id] 
+                    ? window.jobAppearances[post.post_id] 
+                    : 1;
+                
+                return `
                 <div class="job-card ${post.status === 'closed' ? 'closed' : ''}">
                     <div class="job-card-content">
                         <div class="d-flex justify-content-between align-items-start mb-2">
@@ -693,7 +699,12 @@
                                 <div class="job-position">${post.position}</div>
                                 <div class="job-unit"><i class="fas fa-building"></i> ${post.unit_name}</div>
                             </div>
-                            <span class="job-status ${post.status}" style="white-space: nowrap; margin-left: 10px;">${post.status.toUpperCase()}</span>
+                            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                                <span class="job-status ${post.status}" style="white-space: nowrap;">${post.status.toUpperCase()}</span>
+                                <span style="background: #0d6efd; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; white-space: nowrap;" title="Times this job appeared across all scrapes">
+                                    ${appearanceCount}/${allData.length}
+                                </span>
+                            </div>
                         </div>
                         <div class="mt-2">
                             ${post.categories.slice(0, 3).map(cat => 
@@ -705,7 +716,8 @@
                         View Details <i class="fas fa-external-link-alt"></i>
                     </a>
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
             document.getElementById('jobsContainer').innerHTML = `<div class="jobs-grid">${jobsHTML}</div>`;
         }
@@ -815,6 +827,12 @@
             const persistentJobs = Object.values(jobStats).filter(j => j.appearances === allData.length).length;
             const oneTimeJobs = Object.values(jobStats).filter(j => j.appearances === 1).length;
             const avgAppearances = (Object.values(jobStats).reduce((sum, j) => sum + j.appearances, 0) / totalJobs).toFixed(1);
+            
+            // Store appearance counts for displayJobs function
+            window.jobAppearances = {};
+            Object.entries(jobStats).forEach(([postId, stats]) => {
+                window.jobAppearances[postId] = stats.appearances;
+            });
             
             // Update stat cards
             document.getElementById('trackingTotalJobs').textContent = totalJobs.toLocaleString();
