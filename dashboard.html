@@ -934,25 +934,20 @@
                     const found = file.posts.find(p => p.post_id === postId);
                     if (found) {
                         appearances++;
-                        // Extract date and time from source_file path (e.g., "saved_json/2025/10/19/output_20251019_112750.json")
-                        const pathParts = file.source_file.split('/');
-                        if (pathParts.length >= 4) {
-                            const year = pathParts[1];
-                            const month = pathParts[2];
-                            const day = pathParts[3];
-                            const filename = pathParts[pathParts.length - 1]; // e.g., "output_20251019_112750.json"
-                            
-                            // Extract time from filename (e.g., "20251019_112750")
-                            let time = '';
-                            const timeMatch = filename.match(/_(\d{8})_(\d{6})/);
-                            if (timeMatch) {
-                                const dateStr = timeMatch[1]; // "20251019"
-                                const timeStr = timeMatch[2]; // "112750"
-                                const hours = timeStr.substring(0, 2);
-                                const minutes = timeStr.substring(2, 4);
-                                const seconds = timeStr.substring(4, 6);
-                                time = `${hours}:${minutes}:${seconds}`;
-                            }
+                        // Extract date and time from filename (e.g., "output_20251019_112750.json")
+                        const filename = file.source_file.split('/').pop();
+                        
+                        // Extract date and time from filename using regex
+                        let year = '', month = '', day = '', time = '';
+                        const dateTimeMatch = filename.match(/output_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+                        if (dateTimeMatch) {
+                            year = dateTimeMatch[1];    // "2025"
+                            month = dateTimeMatch[2];   // "10"
+                            day = dateTimeMatch[3];     // "19"
+                            const hours = dateTimeMatch[4];     // "11"
+                            const minutes = dateTimeMatch[5];   // "27"
+                            const seconds = dateTimeMatch[6];   // "50"
+                            time = `${hours}:${minutes}:${seconds}`;
                             
                             // Create timestamp object for sorting
                             const timestamp = {
