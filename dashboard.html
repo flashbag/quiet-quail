@@ -466,6 +466,25 @@
             </div>
         </div>
 
+        <!-- Modal for Job Details with Appearance Dates -->
+        <div class="modal fade" id="jobDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="jobDetailsTitle">Job Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="jobDetailsContent">
+                        <div class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Timeline -->
         <div class="timeline-container">
             <h3 class="mb-4"><i class="fas fa-history"></i> Data Collection Timeline</h3>
@@ -679,7 +698,9 @@
                                 <div class="job-position">${post.position}</div>
                                 <div class="job-unit"><i class="fas fa-building"></i> ${post.unit_name}</div>
                             </div>
-                            <span style="background: #0d6efd; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; white-space: nowrap;" title="Times this job appeared across all scrapes">
+                            <span style="background: #0d6efd; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; cursor: help;" 
+                                  title="Times this job appeared across all scrapes. Click for details."
+                                  onclick="showJobDetails('${post.post_id}', event)">
                                 ${appearanceCount}/${allData.length}
                             </span>
                         </div>
@@ -689,9 +710,14 @@
                             ).join('')}
                         </div>
                     </div>
-                    <a href="${post.url}" target="_blank" class="btn btn-sm btn-outline-primary mt-3 job-card-footer">
-                        View Details <i class="fas fa-external-link-alt"></i>
-                    </a>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button class="btn btn-sm btn-outline-info" onclick="showJobDetails('${post.post_id}', event)">
+                            <i class="fas fa-calendar"></i> Appearance Dates
+                        </button>
+                        <a href="${post.url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            View Details <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
                 </div>
             `;
             }).join('');
@@ -781,6 +807,72 @@
             modal.show();
         }
 
+        function showJobDetails(postId, event) {
+            event.stopPropagation();
+            
+            // Get job details from window.jobAppearanceDates
+            const appearanceDates = window.jobAppearanceDates && window.jobAppearanceDates[postId]
+                ? window.jobAppearanceDates[postId]
+                : [];
+            
+            // Get job info from jobStats
+            const jobInfo = window.jobStats && window.jobStats[postId]
+                ? window.jobStats[postId]
+                : null;
+            
+            if (!jobInfo) {
+                console.error('Job not found:', postId);
+                return;
+            }
+            
+            // Update modal title
+            document.getElementById('jobDetailsTitle').textContent = `${jobInfo.position}`;
+            
+            // Create detailed content
+            const appearancesTimeline = appearanceDates.length > 0
+                ? `<div class="mt-3">
+                    <h6>Appearance Timeline (${appearanceDates.length} scrapes):</h6>
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; max-height: 300px; overflow-y: auto;">
+                        ${appearanceDates.map(date => `
+                            <div style="padding: 6px 0; border-bottom: 1px solid #e9ecef;">
+                                <small><i class="fas fa-calendar"></i> ${date}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`
+                : '';
+            
+            const detailedContent = `
+                <div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="color: #666; font-weight: 600;">Position:</label>
+                        <div style="font-size: 1.1rem; color: #333; margin-top: 4px;">${jobInfo.position}</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="color: #666; font-weight: 600;">Unit:</label>
+                        <div style="font-size: 1rem; color: #333; margin-top: 4px;">${jobInfo.unit}</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="color: #666; font-weight: 600;">Total Appearances:</label>
+                        <div style="font-size: 1rem; color: #0d6efd; margin-top: 4px;">
+                            <strong>${jobInfo.appearances}/${allData.length}</strong> scrapes
+                        </div>
+                    </div>
+                    
+                    ${appearancesTimeline}
+                </div>
+            `;
+            
+            const listContainer = document.getElementById('jobDetailsContent');
+            listContainer.innerHTML = detailedContent;
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('jobDetailsModal'));
+            modal.show();
+        }
+
         function displayJobTracking() {
             // Check if Chart.js is available
             if (typeof Chart === 'undefined') {
@@ -791,15 +883,30 @@
             // Calculate job tracking statistics
             const jobStats = {};
             const unitStats = {};
+            const jobAppearanceDates = {};
             
             window.uniquePosts.forEach(post => {
                 const postId = post.post_id;
                 
                 // Count appearances of this job across all data files
                 let appearances = 0;
+                const appearanceDates = [];
                 allData.forEach(file => {
                     const found = file.posts.find(p => p.post_id === postId);
-                    if (found) appearances++;
+                    if (found) {
+                        appearances++;
+                        // Extract date from source_file path (e.g., "saved_json/2025/10/19/output_20251019_112750.json")
+                        const pathParts = file.source_file.split('/');
+                        if (pathParts.length >= 4) {
+                            const year = pathParts[1];
+                            const month = pathParts[2];
+                            const day = pathParts[3];
+                            const date = `${year}-${month}-${day}`;
+                            if (!appearanceDates.includes(date)) {
+                                appearanceDates.push(date);
+                            }
+                        }
+                    }
                 });
                 
                 jobStats[postId] = {
@@ -808,6 +915,8 @@
                     appearances: appearances,
                     status: post.status
                 };
+                
+                jobAppearanceDates[postId] = appearanceDates.sort();
                 
                 // Count jobs by unit
                 const unit = post.unit_name;
@@ -823,8 +932,10 @@
             const oneTimeJobs = Object.values(jobStats).filter(j => j.appearances === 1).length;
             const avgAppearances = (Object.values(jobStats).reduce((sum, j) => sum + j.appearances, 0) / totalJobs).toFixed(1);
             
-            // Store appearance counts for displayJobs function
+            // Store appearance counts and dates for displayJobs and showJobDetails functions
             window.jobAppearances = {};
+            window.jobStats = jobStats;
+            window.jobAppearanceDates = jobAppearanceDates;
             Object.entries(jobStats).forEach(([postId, stats]) => {
                 window.jobAppearances[postId] = stats.appearances;
             });
