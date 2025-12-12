@@ -699,12 +699,9 @@
                                 <div class="job-position">${post.position}</div>
                                 <div class="job-unit"><i class="fas fa-building"></i> ${post.unit_name}</div>
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: flex-start;">
-                                <span class="job-status ${post.status}" style="white-space: nowrap;">${post.status.toUpperCase()}</span>
-                                <span style="background: #0d6efd; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; white-space: nowrap;" title="Times this job appeared across all scrapes">
-                                    ${appearanceCount}/${allData.length}
-                                </span>
-                            </div>
+                            <span style="background: #0d6efd; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; white-space: nowrap;" title="Times this job appeared across all scrapes">
+                                ${appearanceCount}/${allData.length}
+                            </span>
                         </div>
                         <div class="mt-2">
                             ${post.categories.slice(0, 3).map(cat => 
