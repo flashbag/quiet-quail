@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Tracking Statistics Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .stat-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 30px;
+        }
+        .top-jobs {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .job-row {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .job-row:last-child {
+            border-bottom: none;
+        }
+        .job-position {
+            font-weight: 600;
+            color: #333;
+        }
+        .job-appearances {
+            background: #0d6efd;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-lg mt-5 mb-5">
+        <div class="row mb-5">
+            <div class="col-12">
+                <div style="background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    <h1 class="mb-3"><i class="fas fa-chart-bar"></i> Job Tracking Statistics Report</h1>
+                    <p class="text-muted">Analysis of military IT job postings from 2025-10-21 to 2025-12-10</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number">471</div>
+                    <div class="stat-label">Unique Jobs</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number">22</div>
+                    <div class="stat-label">Scrapes Analyzed</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number">240</div>
+                    <div class="stat-label">Persistent Jobs (all scrapes)</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number">10</div>
+                    <div class="stat-label">One-time Postings</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Jobs Over Time</h5>
+                        <div class="chart-container">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Open vs Closed Posts by Date</h5>
+                        <div class="chart-container">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Persistent Jobs -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="fas fa-star"></i> Top 20 Persistent Job Postings</h5>
+                        <div class="top-jobs">
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">1. Java Developer</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">2. Tech Support</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">3. Senior Backend Engineer (Node.js)</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">4. Data Engineer</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">5. DevOps</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">6. CyberSec Engineer</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">7. Data Analytics</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">8. Frontend/React/Backend-розробник</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">9. Системний адміністратор (Active Directory/DHCP/DNS)</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">10. Full Stack Developer</div>
+                                    <small class="text-muted">17 бригада «Рейд»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">11. Senior Java Backend Engineer</div>
+                                    <small class="text-muted">414 окрема бригада ударних БпАС «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">12. Спеціаліст із кіберзахисту</div>
+                                    <small class="text-muted">12 бригада спеціального призначення «Азов»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">13. Інженер з візуалізації даних</div>
+                                    <small class="text-muted">Міністерство Оборони</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">14. Офіцер служби захисту інформації</div>
+                                    <small class="text-muted">106 окрема бригада ТрО</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">15. Data Engineer</div>
+                                    <small class="text-muted">17 бригада «Рейд»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">16. OSINT/GeoINT-аналітик</div>
+                                    <small class="text-muted">414 окрема бригада безпілотних систем «Птахи Мадяра»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">17. DevOps/DataOps Engineer</div>
+                                    <small class="text-muted">17 бригада «Рейд»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">18. Оперативний аналітик</div>
+                                    <small class="text-muted">17 бригада «Рейд»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">19. OSINT-аналітик</div>
+                                    <small class="text-muted">17 Полтавська бригада «Рейд»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                            <div class="job-row">
+                                <div>
+                                    <div class="job-position">20. Аналітик Power BI</div>
+                                    <small class="text-muted">17 бригада «Рейд»</small>
+                                </div>
+                                <div class="job-appearances">22 scrapes</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dates = ["2025-10-21", "2025-10-23", "2025-10-26", "2025-10-27", "2025-10-31", "2025-11-09", "2025-11-15", "2025-11-18", "2025-11-19", "2025-11-24", "2025-11-28", "2025-11-29", "2025-12-01", "2025-12-02", "2025-12-03", "2025-12-04", "2025-12-05", "2025-12-06", "2025-12-07", "2025-12-09", "2025-12-10"];
+        const jobsData = [303, 307, 313, 324, 344, 351, 358, 710, 357, 383, 397, 384, 386, 385, 377, 380, 381, 381, 381, 382, 384];
+        const openData = [303, 307, 313, 324, 344, 351, 358, 710, 357, 383, 397, 384, 386, 385, 377, 380, 381, 381, 381, 382, 384];
+        const closedData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        // Timeline Chart
+        const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+        new Chart(timelineCtx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Total Jobs Tracked',
+                    data: jobsData,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#0d6efd'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Status Chart
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        new Chart(statusCtx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Open',
+                        data: openData,
+                        backgroundColor: '#198754'
+                    },
+                    {
+                        label: 'Closed',
+                        data: closedData,
+                        backgroundColor: '#dc3545'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
