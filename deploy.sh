@@ -43,11 +43,7 @@ if ssh "$SERVER" "command -v rsync" &> /dev/null; then
         parse_html_to_json.py \
         requirements.txt \
         setup_server.sh \
-        setup_server_with_dns_fix.sh \
         setup_cron.sh \
-        check_server_network.sh \
-        fix_dns.sh \
-        fix_dns_comprehensive.sh \
         "$SERVER:$REMOTE_PATH/"
 else
     echo "rsync not found on server, using scp instead..."
@@ -55,17 +51,13 @@ else
         parse_html_to_json.py \
         requirements.txt \
         setup_server.sh \
-        setup_server_with_dns_fix.sh \
         setup_cron.sh \
-        check_server_network.sh \
-        fix_dns.sh \
-        fix_dns_comprehensive.sh \
         "$SERVER:$REMOTE_PATH/"
 fi
 
 # Make setup scripts executable on server
 echo "Making setup scripts executable..."
-ssh "$SERVER" "chmod +x $REMOTE_PATH/setup_server.sh $REMOTE_PATH/setup_server_with_dns_fix.sh $REMOTE_PATH/setup_cron.sh $REMOTE_PATH/check_server_network.sh $REMOTE_PATH/fix_dns.sh $REMOTE_PATH/fix_dns_comprehensive.sh"
+ssh "$SERVER" "chmod +x $REMOTE_PATH/setup_server.sh $REMOTE_PATH/setup_cron.sh"
 
 echo ""
 echo "==================================="

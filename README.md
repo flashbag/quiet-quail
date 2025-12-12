@@ -9,7 +9,6 @@ A Python-based scraper for [LobbyX.army](https://lobbyx.army/?sphere=it) job pos
 - 🔍 **JSON parsing** extracts structured data from HTML
 - ⏰ **Cron support** for scheduled execution (every 6 hours)
 - 🚀 **Easy deployment** scripts for server setup
-- 🛠️ **DNS troubleshooting** tools for VPN-enabled servers
 
 ## Project Structure
 
@@ -23,15 +22,10 @@ Quiet-Quail/
 │
 ├── deploy.sh                    # Deploy to server
 ├── setup_server.sh              # Environment setup
-├── setup_server_with_dns_fix.sh # Setup with automatic DNS fix
 ├── setup_cron.sh                # Configure cron job
 │
-├── check_server_network.sh      # Network diagnostics
-├── fix_dns.sh                   # Simple DNS fix
-├── fix_dns_comprehensive.sh     # Advanced DNS fix (VPN-aware)
-│
 ├── README_DEPLOYMENT.md         # Deployment guide
-└── DNS_TROUBLESHOOTING.md       # DNS troubleshooting guide
+└── README.md                    # This file
 ```
 
 ## Quick Start
@@ -63,7 +57,7 @@ See [README_DEPLOYMENT.md](README_DEPLOYMENT.md) for detailed deployment instruc
 ./deploy.sh user@your-server.com /path/on/server
 ssh user@your-server.com
 cd /path/on/server
-./setup_server_with_dns_fix.sh
+./setup_server.sh
 ./setup_cron.sh
 ```
 

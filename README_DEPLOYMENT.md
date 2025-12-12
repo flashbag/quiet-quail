@@ -52,8 +52,6 @@ The script will:
 - Create necessary directories
 - Run a test to verify everything works
 
-**Note:** You may need sudo privileges for installing Playwright system dependencies.
-
 ### 3. Setup Cron Job
 
 After successful setup, configure the cron job to run every 6 hours:
@@ -123,6 +121,22 @@ python3 fetch_lobbyx.py
 │   └── YYYY/MM/DD/       # Date-organized HTML files
 ├── debug.log             # Application log
 └── cron.log              # Cron execution log
+```
+
+## Troubleshooting
+
+### Playwright Installation Issues
+
+If Playwright fails to install system dependencies:
+```bash
+sudo playwright install-deps chromium
+```
+
+### Permission Issues
+
+Ensure the user has write permissions:
+```bash
+chmod -R u+w /path/on/server
 ```
 
 ## Troubleshooting
