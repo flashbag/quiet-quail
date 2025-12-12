@@ -773,6 +773,7 @@
                 
                 const fileList = fileData.files || [];
                 document.getElementById('fileCount').textContent = fileList.length;
+                console.log('📁 Loading files:', fileList);
                 
                 // Load all JSON files
                 for (const file of fileList) {
@@ -783,10 +784,15 @@
                         }
                         const data = await dataResponse.json();
                         data.filePath = file.path; // Store file path for later use
+                        console.log(`✓ Loaded: ${file.path}`);
                         allData.push(data);
                     } catch (e) {
                         console.warn(`Could not load ${file.path}:`, e.message);
                     }
+                }
+                console.log(`📊 Total files loaded: ${allData.length}`);
+                if (allData.length > 0) {
+                    console.log(`First file path: ${allData[0].filePath}`);
                 }
                 
                 // Process and display data
@@ -1490,14 +1496,27 @@
                     
                     if (file.filePath) {
                         // Try to extract from saved_html path first
-                        const pathMatch = file.filePath.match(/saved_html\/(\d{4})\/(\d{2})\/(\d{2})/);
+                        const pathMatch = file.filePath.match(/saved_html[\/\\](\d{4})[\/\\](\d{2})[\/\\](\d{2})/);
                         if (pathMatch) {
                             const [, year, month, day] = pathMatch;
                             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                             dateLabel = `${monthNames[parseInt(month) - 1]} ${parseInt(day)}`;
                             dateObj = new Date(`${year}-${month}-${day}`);
                         }
+                        
+                        // Fallback: try to extract from filename pattern output_YYYYMMDDhhmmss
+                        if (!pathMatch) {
+                            const filenameMatch = file.filePath.match(/output_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+                            if (filenameMatch) {
+                                const [, year, month, day] = filenameMatch;
+                                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                dateLabel = `${monthNames[parseInt(month) - 1]} ${parseInt(day)}`;
+                                dateObj = new Date(`${year}-${month}-${day}`);
+                            }
+                        }
                     }
+                    
+                    console.log(`File ${index}: path=${file.filePath}, dateLabel=${dateLabel}`);
                     
                     return {
                         day: index + 1,
