@@ -9,67 +9,104 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary-color: #0d6efd;
-            --success-color: #198754;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --info-color: #0dcaf0;
+            --primary-color: #555;
+            --success-color: #555;
+            --danger-color: #555;
+            --warning-color: #555;
+            --info-color: #555;
+            --bg-primary: #f5f5f5;
+            --bg-secondary: #efefef;
+            --bg-tertiary: #e0e0e0;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-tertiary: #999;
+            --border-color: rgba(0, 0, 0, 0.1);
         }
 
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #e8e8e8;
             min-height: 100vh;
-            padding: 20px 0;
+            padding: 15px 0;
+            transition: background 0.3s ease;
+        }
+
+        body.dark-theme {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            --bg-primary: #1e1e2e;
+            --bg-secondary: #2d2d44;
+            --bg-tertiary: #3a3a52;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --text-tertiary: #808080;
+            --border-color: rgba(255, 255, 255, 0.1);
         }
 
         .dashboard-header {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px var(--border-color);
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
         .dashboard-header h1 {
-            color: #333;
+            color: var(--text-primary);
             font-weight: 700;
             margin-bottom: 10px;
         }
 
         .dashboard-header p {
-            color: #666;
+            color: var(--text-secondary);
             margin: 0;
         }
 
+        .theme-toggle {
+            background: none;
+            border: 2px solid #555;
+            color: #555;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .theme-toggle:hover {
+            background: #555;
+            color: white;
+        }
+
         .stat-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-left: 5px solid var(--primary-color);
-            transition: transform 0.3s, box-shadow 0.3s;
+            background: var(--bg-primary);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px var(--border-color);
+            border-left: 3px solid var(--primary-color);
+            transition: transform 0.3s, box-shadow 0.3s, background 0.3s ease;
         }
 
         .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
-        .stat-card.total { border-left-color: #0d6efd; }
-        .stat-card.open { border-left-color: #198754; }
-        .stat-card.closed { border-left-color: #dc3545; }
-        .stat-card.updates { border-left-color: #ffc107; }
+        .stat-card.total { border-left-color: #555; }
+        .stat-card.open { border-left-color: #555; }
+        .stat-card.closed { border-left-color: #555; }
+        .stat-card.updates { border-left-color: #555; }
 
         .stat-number {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #333;
+            color: var(--text-primary);
             margin: 10px 0;
         }
 
         .stat-label {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.95rem;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -82,46 +119,47 @@
         }
 
         .timeline-container {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px var(--border-color);
+            transition: background 0.3s ease;
         }
 
         .timeline-item {
-            padding: 20px;
-            border-left: 3px solid #0d6efd;
-            margin-bottom: 20px;
-            background: #f8f9fa;
-            border-radius: 5px;
+            padding: 12px;
+            border-left: 2px solid #555;
+            margin-bottom: 10px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
             transition: all 0.3s;
         }
 
         .timeline-item:hover {
-            background: #e9ecef;
+            background: var(--bg-tertiary);
             border-left-color: #0d6efd;
         }
 
         .timeline-date {
             font-weight: 700;
-            color: #0d6efd;
-            font-size: 1.1rem;
+            color: #555;
+            font-size: 1rem;
         }
 
         .timeline-count {
-            background: #0d6efd;
+            background: #555;
             color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
             font-weight: 600;
         }
 
         .category-badge {
             display: inline-block;
-            background: #e9ecef;
-            color: #333;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
             padding: 5px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
@@ -148,18 +186,18 @@
         }
 
         .job-card {
-            background: white;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-radius: 6px;
+            padding: 12px;
+            box-shadow: 0 1px 3px var(--border-color);
             transition: all 0.3s;
-            border-top: 3px solid #0d6efd;
+            border-top: 2px solid #555;
             display: flex;
             flex-direction: column;
         }
 
         .job-card:hover {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
             transform: translateY(-3px);
         }
 
@@ -178,12 +216,12 @@
 
         .job-position {
             font-weight: 700;
-            color: #333;
+            color: var(--text-primary);
             font-size: 1.1rem;
         }
 
         .job-unit {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9rem;
             margin-top: 5px;
         }
@@ -208,16 +246,17 @@
         }
 
         .unit-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px var(--border-color);
+            transition: background 0.3s ease;
         }
 
         .unit-name {
             font-weight: 700;
-            color: #333;
+            color: var(--text-primary);
             font-size: 1.1rem;
             margin-bottom: 10px;
         }
@@ -229,16 +268,17 @@
         }
 
         .last-update {
-            color: #999;
+            color: var(--text-tertiary);
             font-size: 0.85rem;
         }
 
         .filter-section {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px var(--border-color);
+            transition: background 0.3s ease;
         }
 
         .search-box {
@@ -246,14 +286,41 @@
         }
 
         .search-box input {
-            border-radius: 20px;
-            padding: 10px 20px;
-            border: 2px solid #0d6efd;
+            border-radius: 4px;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
         .search-box input:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+            border-color: #555;
+            box-shadow: 0 0 0 0.15rem rgba(85, 85, 85, 0.15);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .form-select {
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid #ccc !important;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .form-select:focus {
+            border-color: #555 !important;
+            background: var(--bg-secondary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .form-select option {
+            background: var(--bg-primary);
+            color: var(--text-primary);
         }
 
         @media (max-width: 768px) {
@@ -275,11 +342,12 @@
         }
 
         .no-data {
-            background: white;
+            background: var(--bg-primary);
             border-radius: 10px;
             padding: 40px;
             text-align: center;
-            color: #666;
+            color: var(--text-secondary);
+            transition: background 0.3s ease;
         }
 
         .category-filter {
@@ -290,6 +358,92 @@
             padding: 0.25rem 0.75rem;
             font-size: 0.8rem;
         }
+
+        .btn-outline-info, .btn-outline-primary {
+            color: #555;
+            border-color: #555;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-info:hover, .btn-outline-primary:hover {
+            background: #555;
+            border-color: #555;
+            color: white;
+        }
+
+        body.dark-theme .btn-outline-info,
+        body.dark-theme .btn-outline-primary {
+            color: #888;
+            border-color: #888;
+        }
+
+        body.dark-theme .btn-outline-info:hover,
+        body.dark-theme .btn-outline-primary:hover {
+            background: #888;
+            border-color: #888;
+            color: white;
+        }
+
+        .btn-outline-secondary {
+            color: #666;
+            border-color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-secondary:hover {
+            background: #666;
+            border-color: #666;
+            color: white;
+        }
+
+        h3, h4, h5, h6 {
+            color: var(--text-primary);
+            transition: color 0.3s ease;
+        }
+
+        body.dark-theme .modal-content {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        body.dark-theme .modal-header,
+        body.dark-theme .modal-footer {
+            border-color: var(--border-color);
+        }
+
+        body.dark-theme .close {
+            color: var(--text-primary);
+        }
+
+        .section-nav {
+            background: var(--bg-primary);
+            border-bottom: 2px solid #555;
+            padding: 8px 0;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: background 0.3s ease;
+        }
+
+        .section-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 6px 12px;
+            margin: 0 6px;
+            border-radius: 3px;
+            display: inline-block;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .section-nav a:hover,
+        .section-nav a.active {
+            background: #555;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -298,18 +452,20 @@
         <div class="dashboard-header">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h1><i class="fas fa-briefcase"></i> LobbyX Job Dashboard</h1>
-                    <p>Real-time military IT job postings tracker</p>
+                    <h1><i class="fas fa-briefcase"></i> ⚙️ QUAIL</h1>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <div style="display: flex; gap: 30px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                        <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+                            <i class="fas fa-moon"></i> Dark Mode
+                        </button>
                         <div style="text-align: center;">
                             <div style="font-size: 1.8rem; font-weight: bold; color: #0d6efd;" id="totalPosts">-</div>
-                            <small style="color: #666;">Total Posts</small>
+                            <small style="color: var(--text-secondary);">Total Posts</small>
                         </div>
                         <div style="text-align: center;">
                             <div style="font-size: 1.8rem; font-weight: bold; color: #198754;" id="fileCount">-</div>
-                            <small style="color: #666;">Data Files</small>
+                            <small style="color: var(--text-secondary);">Data Files</small>
                         </div>
                         <p class="mb-0"><small class="last-update" id="lastUpdate">Loading data...</small></p>
                     </div>
@@ -317,8 +473,19 @@
             </div>
         </div>
 
+        <!-- Section Navigation -->
+        <div class="section-nav">
+            <div class="container-fluid">
+                <a href="#filters-section" class="nav-link active"><i class="fas fa-filter"></i> Filters</a>
+                <a href="#jobs-section" class="nav-link"><i class="fas fa-list"></i> Jobs</a>
+                <a href="#units-section" class="nav-link"><i class="fas fa-building"></i> Units</a>
+                <a href="#analytics-section" class="nav-link"><i class="fas fa-chart-line"></i> Analytics</a>
+                <a href="#timeline-section" class="nav-link"><i class="fas fa-history"></i> Timeline</a>
+            </div>
+        </div>
+
         <!-- Filters -->
-        <div class="filter-section">
+        <div class="filter-section" id="filters-section">
             <div class="row">
                 <div class="col-md-4">
                     <div class="search-box">
@@ -343,13 +510,15 @@
                         <option value="unit">Unit (A-Z)</option>
                         <option value="appearances_desc">Most Appearances</option>
                         <option value="appearances_asc">Least Appearances</option>
+                        <option value="lifetime_desc">Longest Lifetime</option>
+                        <option value="lifetime_asc">Shortest Lifetime</option>
                     </select>
                 </div>
             </div>
         </div>
 
         <!-- Job Posts Section -->
-        <div style="background: white; border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div id="jobs-section" style="background: var(--bg-primary); border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px var(--border-color); transition: background 0.3s ease;">
             <h3 class="mb-4"><i class="fas fa-list"></i> Job Postings</h3>
             <div id="jobsContainer" class="loading">
                 <div class="spinner">
@@ -364,7 +533,7 @@
         </div>
 
         <!-- Units Section -->
-        <div style="background: white; border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div id="units-section" style="background: var(--bg-primary); border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px var(--border-color); transition: background 0.3s ease;">
             <h3 class="mb-4"><i class="fas fa-building"></i> Military Units</h3>
             <div class="row" id="unitsContainer">
                 <div class="loading col-12">
@@ -378,7 +547,7 @@
         </div>
 
         <!-- Job Tracking Statistics Section -->
-        <div style="background: white; border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div id="analytics-section" style="background: var(--bg-primary); border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px var(--border-color); transition: background 0.3s ease;">
             <h3 class="mb-4"><i class="fas fa-chart-line"></i> Job Tracking Analytics</h3>
             
             <!-- Tracking Stats Cards -->
@@ -447,6 +616,18 @@
                 </div>
             </div>
 
+            <!-- Jobs Discovered by Day Chart -->
+            <div class="row mt-4 mb-4">
+                <div class="col-lg-12">
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+                        <h6 class="mb-3">Jobs Discovered by Day</h6>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="jobsByDayChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Top Persistent Jobs -->
             <div class="mt-4">
                 <h6 class="mb-3">Top 10 Most Persistent Jobs</h6>
@@ -495,7 +676,7 @@
         </div>
 
         <!-- Timeline -->
-        <div class="timeline-container">
+        <div id="timeline-section" class="timeline-container">
             <h3 class="mb-4"><i class="fas fa-history"></i> Data Collection Timeline</h3>
             <div id="timelineContainer" class="loading">
                 <div class="spinner">
@@ -507,7 +688,7 @@
         </div>
 
         <!-- Footer -->
-        <div style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 30px; text-align: center; color: #666;">
+        <div style="background: var(--bg-primary); border-radius: 10px; padding: 20px; margin-bottom: 30px; text-align: center; color: var(--text-secondary); transition: background 0.3s ease;">
             <p class="mb-0">
                 <small>Data sourced from <a href="https://lobbyx.army" target="_blank" style="color: #0d6efd; text-decoration: none;">LobbyX.army</a> | 
                 Last parsed: <span id="lastParsed">-</span></small>
@@ -519,6 +700,69 @@
     <script>
         let allData = [];
         let filteredData = [];
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle('dark-theme');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            // Save preference to localStorage
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            // Update button text
+            if (isDark) {
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+            } else {
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+            }
+        }
+
+        // Load saved theme on page load
+        window.addEventListener('load', () => {
+            const savedTheme = localStorage.getItem('theme');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+            }
+
+            // Setup section navigation
+            const navLinks = document.querySelectorAll('.section-nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    const sectionId = this.getAttribute('href');
+                    const section = document.querySelector(sectionId);
+                    if (section) {
+                        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+
+            // Update active nav link on scroll
+            window.addEventListener('scroll', () => {
+                const sections = document.querySelectorAll('[id*="-section"]');
+                let current = '';
+                
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (window.pageYOffset >= sectionTop - 100) {
+                        current = section.getAttribute('id');
+                    }
+                });
+                
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + current) {
+                        link.classList.add('active');
+                    }
+                });
+            });
+        });
 
         // Load JSON files
         async function loadData() {
@@ -699,32 +943,38 @@
                     ? window.jobAppearances[post.post_id] 
                     : 1;
                 
+                // Get lifetime for this job
+                const jobLifetime = window.jobStats && window.jobStats[post.post_id] && window.jobStats[post.post_id].lifetimeHours !== undefined
+                    ? window.jobStats[post.post_id].lifetimeHours
+                    : 0;
+                const lifetimeDisplay = jobLifetime >= 24 ? `${Math.round(jobLifetime / 24)}d` : `${jobLifetime}h`;
+                
                 return `
                 <div class="job-card ${post.status === 'closed' ? 'closed' : ''}">
                     <div class="job-card-content">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div class="flex-grow-1">
-                                <div class="job-position">${post.position}</div>
+                                <div class="job-position" onclick="showJobDetails('${post.post_id}', event)" style="cursor: pointer; color: #555;" title="Click to view details">
+                                    ${post.position}
+                                </div>
                                 <div class="job-unit"><i class="fas fa-building"></i> ${post.unit_name}</div>
                             </div>
-                            <span style="background: #0d6efd; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; cursor: help;" 
-                                  title="Times this job appeared across all scrapes. Click for details."
-                                  onclick="showJobDetails('${post.post_id}', event)">
-                                ${appearanceCount}/${allData.length}
-                            </span>
-                        </div>
-                        <div class="mt-2">
-                            ${post.categories.slice(0, 3).map(cat => 
-                                `<span class="category-badge">${cat.replace('category-', '')}</span>`
-                            ).join('')}
+                            <div style="display: flex; gap: 6px; flex-direction: column; align-items: flex-end;">
+                                <span style="background: #555; color: white; padding: 4px 8px; border-radius: 3px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; cursor: help;" 
+                                      title="Times this job appeared across all scrapes. Click for details."
+                                      onclick="showJobDetails('${post.post_id}', event)">
+                                    ${appearanceCount}/${allData.length}
+                                </span>
+                                <span style="background: #6c757d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;" 
+                                      title="Job lifetime from first to last appearance">
+                                    ${lifetimeDisplay}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px; margin-top: 10px;">
-                        <button class="btn btn-sm btn-outline-info" onclick="showJobDetails('${post.post_id}', event)">
-                            <i class="fas fa-calendar"></i> Appearance Dates
-                        </button>
-                        <a href="${post.url}" target="_blank" class="btn btn-sm btn-outline-primary">
-                            View Details <i class="fas fa-external-link-alt"></i>
+                    <div style="display: flex; gap: 8px; margin-top: 8px;">
+                        <a href="${post.url}" target="_blank" class="btn btn-sm btn-outline-secondary" style="flex: 1;">
+                            External Link <i class="fas fa-external-link-alt"></i>
                         </a>
                     </div>
                 </div>
@@ -788,6 +1038,18 @@
                         const appA = window.jobAppearances[a.post_id] || 1;
                         const appB = window.jobAppearances[b.post_id] || 1;
                         return appA - appB;
+                    });
+                } else if (sortValue === 'lifetime_desc') {
+                    filtered.sort((a, b) => {
+                        const lifetimeA = window.jobStats && window.jobStats[a.post_id] ? window.jobStats[a.post_id].lifetimeHours || 0 : 0;
+                        const lifetimeB = window.jobStats && window.jobStats[b.post_id] ? window.jobStats[b.post_id].lifetimeHours || 0 : 0;
+                        return lifetimeB - lifetimeA;
+                    });
+                } else if (sortValue === 'lifetime_asc') {
+                    filtered.sort((a, b) => {
+                        const lifetimeA = window.jobStats && window.jobStats[a.post_id] ? window.jobStats[a.post_id].lifetimeHours || 0 : 0;
+                        const lifetimeB = window.jobStats && window.jobStats[b.post_id] ? window.jobStats[b.post_id].lifetimeHours || 0 : 0;
+                        return lifetimeA - lifetimeB;
                     });
                 }
 
@@ -862,7 +1124,7 @@
             // Create detailed content
             const appearancesTimeline = appearanceDates.length > 0
                 ? `<div class="mt-3">
-                    <h6>Appearance Timeline (${appearanceDates.length} scrapes - Most Recent First):</h6>
+                    <h6>Appearance Timeline (${jobInfo.appearances} scrapes - Most Recent First):</h6>
                     <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; max-height: 300px; overflow-y: auto;">
                         ${appearanceDates.map(dateObj => `
                             <div style="padding: 8px 0; border-bottom: 1px solid #e9ecef;">
@@ -891,6 +1153,15 @@
                             <strong>${jobInfo.appearances}/${allData.length}</strong> scrapes
                         </div>
                     </div>
+                    
+                    ${jobInfo.lifetimeHours !== undefined ? `
+                    <div style="margin-bottom: 15px;">
+                        <label style="color: #666; font-weight: 600;">Job Lifetime:</label>
+                        <div style="font-size: 1rem; color: #333; margin-top: 4px;">
+                            <strong>${jobInfo.lifetimeHours}</strong> hours ${jobInfo.lifetimeHours >= 24 ? `(~${Math.round(jobInfo.lifetimeHours / 24)} days)` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
                     
                     ${appearancesTimeline}
                 </div>
@@ -974,6 +1245,16 @@
                 
                 // Sort by date/time in descending order (most recent first)
                 jobAppearanceDates[postId] = appearanceDates.sort((a, b) => b.fullDate - a.fullDate);
+                
+                // Calculate job lifetime in hours (from first appearance to last appearance)
+                if (appearanceDates.length > 1) {
+                    const firstAppearance = appearanceDates[appearanceDates.length - 1].fullDate; // oldest
+                    const lastAppearance = appearanceDates[0].fullDate; // newest
+                    const lifetimeHours = Math.round((lastAppearance - firstAppearance) / (1000 * 60 * 60));
+                    jobStats[postId].lifetimeHours = lifetimeHours;
+                } else if (appearanceDates.length === 1) {
+                    jobStats[postId].lifetimeHours = 0; // Only appeared once, no lifetime
+                }
                 
                 // Count jobs by unit
                 const unit = post.unit_name;
@@ -1196,6 +1477,97 @@
                 }
             } catch (e) {
                 console.warn('Could not render units chart:', e);
+            }
+            
+            // Jobs discovered by day chart
+            try {
+                // Count jobs per day (file)
+                const jobsByDay = allData.map((file, index) => ({
+                    day: index + 1,
+                    date: file.date || `Day ${index + 1}`,
+                    count: file.posts.length
+                }));
+                
+                const canvasElement = document.getElementById('jobsByDayChart');
+                if (!canvasElement) {
+                    console.error('jobsByDayChart canvas not found');
+                } else {
+                    const ctx = canvasElement.getContext('2d');
+                    if (!ctx) {
+                        console.error('Could not get 2D context for jobsByDayChart');
+                    } else {
+                        // Destroy previous chart if it exists
+                        if (window.jobsByDayChart && typeof window.jobsByDayChart.destroy === 'function') {
+                            window.jobsByDayChart.destroy();
+                        }
+                        
+                        window.jobsByDayChart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: jobsByDay.map(d => `Day ${d.day}`),
+                                datasets: [{
+                                    label: 'Jobs Discovered',
+                                    data: jobsByDay.map(d => d.count),
+                                    borderColor: '#0d6efd',
+                                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 4,
+                                    pointBackgroundColor: '#0d6efd',
+                                    pointBorderColor: 'white',
+                                    pointBorderWidth: 2
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        labels: {
+                                            color: document.body.classList.contains('dark-theme') ? '#e0e0e0' : '#333',
+                                            usePointStyle: true,
+                                            padding: 15
+                                        }
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(0,0,0,0.8)',
+                                        padding: 12,
+                                        cornerRadius: 4,
+                                        callbacks: {
+                                            label: function(context) {
+                                                return `Total: ${context.parsed.y} jobs`;
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            color: document.body.classList.contains('dark-theme') ? '#b0b0b0' : '#666',
+                                            stepSize: Math.ceil(Math.max(...jobsByDay.map(d => d.count)) / 10)
+                                        },
+                                        grid: {
+                                            color: document.body.classList.contains('dark-theme') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                                        }
+                                    },
+                                    x: {
+                                        ticks: {
+                                            color: document.body.classList.contains('dark-theme') ? '#b0b0b0' : '#666'
+                                        },
+                                        grid: {
+                                            color: document.body.classList.contains('dark-theme') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not render jobs by day chart:', e);
             }
             
             // Top persistent jobs
