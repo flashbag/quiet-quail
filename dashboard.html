@@ -342,12 +342,12 @@
         <!-- Filters -->
         <div class="filter-section">
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="search-box">
                         <input type="text" class="form-control" id="searchInput" placeholder="Search positions or units...">
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <select class="form-select" id="appearanceFilter">
                         <option value="">All Appearances</option>
                         <option value="1">1 time only</option>
@@ -358,12 +358,17 @@
                         <option value="23">All 23 scrapes</option>
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <select class="form-select" id="statusFilter">
-                        <option value="">All Statuses</option>
-                        <option value="open">Open Only</option>
-                        <option value="closed">Closed Only</option>
-                    </select>
+            </div>
+        </div>
+
+        <!-- Job Posts Section -->
+        <div style="background: white; border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <h3 class="mb-4"><i class="fas fa-list"></i> Job Postings</h3>
+            <div id="jobsContainer" class="loading">
+                <div class="spinner">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -483,14 +488,6 @@
             </div>
         </div>
 
-        <!-- Job Posts Section -->
-        <div style="background: white; border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-            <h3 class="mb-4"><i class="fas fa-list"></i> Job Postings</h3>
-            <div id="jobsContainer" class="loading">
-                <div class="spinner">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
         <!-- Timeline -->
         <div class="timeline-container">
             <h3 class="mb-4"><i class="fas fa-history"></i> Data Collection Timeline</h3>
@@ -732,20 +729,16 @@
 
         function setupFilters() {
             const searchInput = document.getElementById('searchInput');
-            const statusFilter = document.getElementById('statusFilter');
             const appearanceFilter = document.getElementById('appearanceFilter');
 
             function applyFilters() {
                 const searchTerm = searchInput.value.toLowerCase();
-                const statusValue = statusFilter.value;
                 const appearanceValue = appearanceFilter.value;
 
                 const filtered = (window.uniquePosts || []).filter(post => {
                     const matchesSearch = !searchTerm || 
                         post.position.toLowerCase().includes(searchTerm) ||
                         post.unit_name.toLowerCase().includes(searchTerm);
-                    
-                    const matchesStatus = !statusValue || post.status === statusValue;
                     
                     // Get appearance count
                     const appearances = window.jobAppearances && window.jobAppearances[post.post_id]
@@ -767,14 +760,13 @@
                         matchesAppearance = appearances === 23;
                     }
                     
-                    return matchesSearch && matchesStatus && matchesAppearance;
+                    return matchesSearch && matchesAppearance;
                 });
 
                 displayJobs(filtered);
             }
 
             searchInput.addEventListener('input', applyFilters);
-            statusFilter.addEventListener('change', applyFilters);
             appearanceFilter.addEventListener('change', applyFilters);
         }
 
