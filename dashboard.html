@@ -302,25 +302,17 @@
                     <p>Real-time military IT job postings tracker</p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <p class="mb-0"><small class="last-update" id="lastUpdate">Loading data...</small></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Statistics Row -->
-        <div class="row" id="statsContainer">
-            <div class="col-md-6 col-sm-6">
-                <div class="stat-card total">
-                    <div class="stat-icon"><i class="fas fa-briefcase"></i></div>
-                    <div class="stat-label">Total Posts</div>
-                    <div class="stat-number" id="totalPosts">-</div>
-                </div>
-            </div>
-            <div class="col-md-6 col-sm-6">
-                <div class="stat-card updates">
-                    <div class="stat-icon"><i class="fas fa-sync"></i></div>
-                    <div class="stat-label">Data Files</div>
-                    <div class="stat-number" id="fileCount">-</div>
+                    <div style="display: flex; gap: 30px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #0d6efd;" id="totalPosts">-</div>
+                            <small style="color: #666;">Total Posts</small>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 1.8rem; font-weight: bold; color: #198754;" id="fileCount">-</div>
+                            <small style="color: #666;">Data Files</small>
+                        </div>
+                        <p class="mb-0"><small class="last-update" id="lastUpdate">Loading data...</small></p>
+                    </div>
                 </div>
             </div>
         </div>
