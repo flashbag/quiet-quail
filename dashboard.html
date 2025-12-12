@@ -428,6 +428,9 @@
                                     <!-- Populated by JavaScript -->
                                 </tbody>
                             </table>
+                            <small style="display: block; margin-top: 10px; color: #666; text-align: center;">
+                                Click on any row to see jobs in that range
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -446,6 +449,25 @@
                 <h6 class="mb-3">Top 10 Most Persistent Jobs</h6>
                 <div id="topJobsContainer" style="background: #f8f9fa; border-radius: 8px; padding: 15px; max-height: 400px; overflow-y: auto;">
                     <div style="text-align: center; color: #999; padding: 20px;">Loading tracking data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for Filtered Jobs by Persistence Range -->
+        <div class="modal fade" id="persistenceJobsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="persistenceJobsTitle">Jobs by Persistence Range</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="persistenceJobsList">
+                        <div class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -713,6 +735,45 @@
             statusFilter.addEventListener('change', applyFilters);
         }
 
+        function showJobsByPersistenceRange(range, jobStats, allData) {
+            // Filter jobs that fall in this range
+            const jobsInRange = Object.entries(jobStats)
+                .filter(([id, job]) => {
+                    const appearances = job.appearances;
+                    if (range.minAppearances === range.maxAppearances) {
+                        return appearances === range.minAppearances;
+                    }
+                    return appearances >= range.minAppearances && appearances <= range.maxAppearances;
+                })
+                .map(([id, job]) => job);
+            
+            // Update modal title
+            document.getElementById('persistenceJobsTitle').textContent = 
+                `${jobsInRange.length} Jobs - ${range.range}`;
+            
+            // Create jobs list HTML
+            const jobsHTML = jobsInRange.map(job => `
+                <div style="padding: 12px; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${job.position}</div>
+                        <small style="color: #666;">${job.unit}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="background: ${range.color}; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: 600;">
+                            ${job.appearances}/${allData.length}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+            
+            const listContainer = document.getElementById('persistenceJobsList');
+            listContainer.innerHTML = jobsHTML || '<div style="padding: 20px; text-align: center; color: #999;">No jobs found</div>';
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('persistenceJobsModal'));
+            modal.show();
+        }
+
         function displayJobTracking() {
             // Check if Chart.js is available
             if (typeof Chart === 'undefined') {
@@ -771,31 +832,41 @@
                     range: `All ${maxAppearances} scrapes`, 
                     count: appearances.filter(a => a === maxAppearances).length,
                     color: '#198754',
-                    percentage: 0
+                    percentage: 0,
+                    minAppearances: maxAppearances,
+                    maxAppearances: maxAppearances
                 },
                 { 
                     range: `${Math.ceil(maxAppearances * 0.75)}-${maxAppearances - 1} scrapes`, 
                     count: appearances.filter(a => a >= Math.ceil(maxAppearances * 0.75) && a < maxAppearances).length,
                     color: '#0d6efd',
-                    percentage: 0
+                    percentage: 0,
+                    minAppearances: Math.ceil(maxAppearances * 0.75),
+                    maxAppearances: maxAppearances - 1
                 },
                 { 
                     range: `${Math.ceil(maxAppearances * 0.5)}-${Math.ceil(maxAppearances * 0.75) - 1} scrapes`, 
                     count: appearances.filter(a => a >= Math.ceil(maxAppearances * 0.5) && a < Math.ceil(maxAppearances * 0.75)).length,
                     color: '#0dcaf0',
-                    percentage: 0
+                    percentage: 0,
+                    minAppearances: Math.ceil(maxAppearances * 0.5),
+                    maxAppearances: Math.ceil(maxAppearances * 0.75) - 1
                 },
                 { 
                     range: `${Math.ceil(maxAppearances * 0.25)}-${Math.ceil(maxAppearances * 0.5) - 1} scrapes`, 
                     count: appearances.filter(a => a >= Math.ceil(maxAppearances * 0.25) && a < Math.ceil(maxAppearances * 0.5)).length,
                     color: '#ffc107',
-                    percentage: 0
+                    percentage: 0,
+                    minAppearances: Math.ceil(maxAppearances * 0.25),
+                    maxAppearances: Math.ceil(maxAppearances * 0.5) - 1
                 },
                 { 
                     range: `1-${Math.ceil(maxAppearances * 0.25) - 1} scrapes`, 
                     count: appearances.filter(a => a < Math.ceil(maxAppearances * 0.25)).length,
                     color: '#dc3545',
-                    percentage: 0
+                    percentage: 0,
+                    minAppearances: 1,
+                    maxAppearances: Math.ceil(maxAppearances * 0.25) - 1
                 }
             ];
             
@@ -861,18 +932,33 @@
                             console.log(`  ${r.range.padEnd(25)} │ ${bar} ${r.count} jobs (${r.percentage}%)`);
                         });
                         
-                        // Populate detailed table
+                        // Populate detailed table with clickable rows
                         const tableBody = document.getElementById('persistenceTableBody');
                         if (tableBody) {
                             tableBody.innerHTML = appearanceRange
-                                .map(r => `
-                                    <tr style="border-left: 4px solid ${r.color}; background: rgba(255,255,255,0.5);">
+                                .map((r, idx) => `
+                                    <tr style="border-left: 4px solid ${r.color}; background: rgba(255,255,255,0.5); cursor: pointer;" 
+                                        class="persistence-row" 
+                                        data-range-idx="${idx}"
+                                        data-min-appearances="${r.minAppearances}"
+                                        data-max-appearances="${r.maxAppearances}"
+                                        onmouseover="this.style.background='${r.color}20'"
+                                        onmouseout="this.style.background='rgba(255,255,255,0.5)'">
                                         <td><small>${r.range}</small></td>
                                         <td class="text-end"><strong>${r.count}</strong></td>
                                         <td class="text-end"><small>${r.percentage}%</small></td>
                                     </tr>
                                 `)
                                 .join('');
+                            
+                            // Add click handlers to table rows
+                            document.querySelectorAll('.persistence-row').forEach(row => {
+                                row.addEventListener('click', function() {
+                                    const rangeIdx = parseInt(this.dataset.rangeIdx);
+                                    const range = appearanceRange[rangeIdx];
+                                    showJobsByPersistenceRange(range, jobStats, allData);
+                                });
+                            });
                         }
                     }
                 }
