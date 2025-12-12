@@ -771,7 +771,7 @@
                 const response = await fetch('/api/files');
                 const fileData = await response.json();
                 
-                const fileList = fileData.files || [];
+                const fileList = (fileData.files || []).filter(file => !file.path.includes('consolidated_unique'));
                 document.getElementById('fileCount').textContent = fileList.length;
                 console.log('📁 Loading files:', fileList);
                 
@@ -794,6 +794,10 @@
                 if (allData.length > 0) {
                     console.log(`First file path: ${allData[0].filePath}`);
                 }
+                
+                // Filter out consolidated_unique entries
+                allData = allData.filter(file => !file.filePath || !file.filePath.includes('consolidated_unique'));
+                console.log(`📊 After filtering: ${allData.length} files`);
                 
                 // Process and display data
                 if (allData.length > 0) {
@@ -870,6 +874,10 @@
             const dates = {};
             
             allData.forEach(file => {
+                // Skip consolidated_unique entries
+                if (file.source_file && file.source_file.includes('consolidated_unique')) {
+                    return;
+                }
                 const date = file.source_file.split('/').slice(0, 3).join('-');
                 if (!dates[date]) {
                     dates[date] = 0;
