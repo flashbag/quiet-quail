@@ -6,6 +6,7 @@
     <title>Quiet-Quail Job Postings Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary-color: #0d6efd;
@@ -382,6 +383,67 @@
             </div>
         </div>
 
+        <!-- Job Tracking Statistics Section -->
+        <div style="background: white; border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <h3 class="mb-4"><i class="fas fa-chart-line"></i> Job Tracking Analytics</h3>
+            
+            <!-- Tracking Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; text-align: center; border-left: 4px solid #0d6efd;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #0d6efd;" id="trackingTotalJobs">-</div>
+                        <small style="color: #666;">Total Unique Jobs</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; text-align: center; border-left: 4px solid #198754;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #198754;" id="trackingPersistent">-</div>
+                        <small style="color: #666;">Persistent Jobs (all scrapes)</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; text-align: center; border-left: 4px solid #ffc107;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #ffc107;" id="trackingNew">-</div>
+                        <small style="color: #666;">One-Time Postings</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 15px; text-align: center; border-left: 4px solid #0dcaf0;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #0dcaf0;" id="trackingAvg">-</div>
+                        <small style="color: #666;">Avg Appearances</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+                        <h6 class="mb-3">Job Persistence Distribution</h6>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="persistenceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <div style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+                        <h6 class="mb-3">Top Recruiting Units</h6>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="unitsChartTracking"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Persistent Jobs -->
+            <div class="mt-4">
+                <h6 class="mb-3">Top 10 Most Persistent Jobs</h6>
+                <div id="topJobsContainer" style="background: #f8f9fa; border-radius: 8px; padding: 15px; max-height: 400px; overflow-y: auto;">
+                    <div style="text-align: center; color: #999; padding: 20px;">Loading tracking data...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Job Posts Section -->
         <div style="background: white; border-radius: 10px; padding: 30px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
             <h3 class="mb-4"><i class="fas fa-list"></i> Job Postings</h3>
@@ -440,6 +502,7 @@
                     displayUnits();
                     displayJobs();
                     setupFilters();
+                    displayJobTracking();  // Add tracking display
                 } else {
                     throw new Error('No data files loaded');
                 }
@@ -634,6 +697,143 @@
 
             searchInput.addEventListener('input', applyFilters);
             statusFilter.addEventListener('change', applyFilters);
+        }
+
+        function displayJobTracking() {
+            // Calculate job tracking statistics
+            const jobStats = {};
+            const unitStats = {};
+            
+            window.uniquePosts.forEach(post => {
+                const postId = post.post_id;
+                
+                // Count appearances of this job across all data files
+                let appearances = 0;
+                allData.forEach(file => {
+                    const found = file.posts.find(p => p.post_id === postId);
+                    if (found) appearances++;
+                });
+                
+                jobStats[postId] = {
+                    position: post.position,
+                    unit: post.unit_name,
+                    appearances: appearances,
+                    status: post.status
+                };
+                
+                // Count jobs by unit
+                const unit = post.unit_name;
+                if (!unitStats[unit]) {
+                    unitStats[unit] = 0;
+                }
+                unitStats[unit]++;
+            });
+            
+            // Calculate metrics
+            const totalJobs = window.uniquePosts.length;
+            const persistentJobs = Object.values(jobStats).filter(j => j.appearances === allData.length).length;
+            const oneTimeJobs = Object.values(jobStats).filter(j => j.appearances === 1).length;
+            const avgAppearances = (Object.values(jobStats).reduce((sum, j) => sum + j.appearances, 0) / totalJobs).toFixed(1);
+            
+            // Update stat cards
+            document.getElementById('trackingTotalJobs').textContent = totalJobs.toLocaleString();
+            document.getElementById('trackingPersistent').textContent = persistentJobs;
+            document.getElementById('trackingNew').textContent = oneTimeJobs;
+            document.getElementById('trackingAvg').textContent = avgAppearances;
+            
+            // Distribution of job persistence
+            const appearances = Object.values(jobStats).map(j => j.appearances);
+            const appearanceRange = [
+                { range: 'All scrapes', count: appearances.filter(a => a === allData.length).length },
+                { range: '16-21 scrapes', count: appearances.filter(a => a >= 16 && a < allData.length).length },
+                { range: '11-15 scrapes', count: appearances.filter(a => a >= 11 && a < 16).length },
+                { range: '6-10 scrapes', count: appearances.filter(a => a >= 6 && a < 11).length },
+                { range: '1-5 scrapes', count: appearances.filter(a => a < 6).length }
+            ];
+            
+            // Persistence Chart
+            try {
+                const persistenceCtx = document.getElementById('persistenceChart').getContext('2d');
+                if (window.persistenceChart) window.persistenceChart.destroy();
+                window.persistenceChart = new Chart(persistenceCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: appearanceRange.map(r => r.range),
+                        datasets: [{
+                            data: appearanceRange.map(r => r.count),
+                            backgroundColor: ['#198754', '#0d6efd', '#0dcaf0', '#ffc107', '#dc3545']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.warn('Could not render persistence chart:', e);
+            }
+            
+            // Top recruiting units
+            const topUnits = Object.entries(unitStats)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8);
+            
+            try {
+                const unitsCtx = document.getElementById('unitsChartTracking').getContext('2d');
+                if (window.unitsChartTracking) window.unitsChartTracking.destroy();
+                window.unitsChartTracking = new Chart(unitsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: topUnits.map(([unit, count]) => unit.substring(0, 30) + '...'),
+                        datasets: [{
+                            label: 'Job Positions',
+                            data: topUnits.map(([unit, count]) => count),
+                            backgroundColor: '#0d6efd'
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.warn('Could not render units chart:', e);
+            }
+            
+            // Top persistent jobs
+            const topJobs = Object.entries(jobStats)
+                .sort((a, b) => b[1].appearances - a[1].appearances)
+                .slice(0, 10);
+            
+            const topJobsHTML = topJobs.map(([id, job]) => `
+                <div style="padding: 12px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; color: #333;">${job.position}</div>
+                        <small style="color: #666;">${job.unit}</small>
+                    </div>
+                    <span style="background: #0d6efd; color: white; padding: 4px 10px; border-radius: 15px; font-size: 0.85rem; font-weight: 600;">
+                        ${job.appearances}/${allData.length}
+                    </span>
+                </div>
+            `).join('');
+            
+            document.getElementById('topJobsContainer').innerHTML = topJobsHTML || '<div style="padding: 20px; text-align: center; color: #999;">No data available</div>';
         }
 
         // Load data when page loads
