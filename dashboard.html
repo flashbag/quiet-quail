@@ -536,9 +536,9 @@
                     updateTimeline();
                     updateStats();
                     displayUnits();
-                    displayJobs();
+                    displayJobTracking();  // Calculate job appearances first
+                    displayJobs();         // Then display jobs with appearance data
                     setupFilters();
-                    displayJobTracking();  // Add tracking display
                 } else {
                     throw new Error('No data files loaded');
                 }
