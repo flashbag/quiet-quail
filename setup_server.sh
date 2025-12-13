@@ -73,10 +73,15 @@ playwright install-deps chromium || {
     echo ""
 }
 
-# Create saved_html directory
-echo "Creating saved_html directory..."
-mkdir -p saved_html
-mkdir -p saved_json
+# Create data directory (consolidates saved_html, saved_json, job_pages)
+echo "Creating data directory..."
+mkdir -p data
+
+# Run migration script if data needs consolidation
+if [ -d "saved_html" ] || [ -d "saved_json" ]; then
+    echo "Consolidating existing data folders..."
+    python3 migrate_to_data_folder.py
+fi
 
 # Test the script
 echo ""
@@ -88,10 +93,19 @@ python3 fetch_lobbyx.py
 TEST_RESULT=$?
 set -e  # Re-enable exit on error
 
-if [ $TEST_RESULT -eq 0 ]; then
+# Validate data structure
+echo ""
+echo "==================================="
+echo "Validating data structure..."
+echo "==================================="
+python3 validate_data_structure.py
+VALIDATION_RESULT=$?
+
+if [ $TEST_RESULT -eq 0 ] && [ $VALIDATION_RESULT -eq 0 ]; then
     echo ""
     echo "==================================="
     echo "✓ Setup completed successfully!"
+    echo "✓ Data structure is valid!"
     echo "==================================="
     echo ""
     echo "Next steps:"
@@ -105,16 +119,15 @@ if [ $TEST_RESULT -eq 0 ]; then
 else
     echo ""
     echo "==================================="
-    echo "⚠ Script test completed with exit code $TEST_RESULT"
+    echo "⚠ Setup completed with issues"
     echo "==================================="
     echo ""
-    echo "The setup may have completed, but the initial fetch had issues."
-    echo "This could be due to:"
-    echo "  - Network connectivity issues"
-    echo "  - Missing Playwright system dependencies"
+    echo "Test result: $TEST_RESULT"
+    echo "Validation result: $VALIDATION_RESULT"
     echo ""
     echo "Try running manually to see the error:"
     echo "  source $SCRIPT_DIR/venv/bin/activate"
     echo "  python3 $SCRIPT_DIR/fetch_lobbyx.py"
+    echo "  python3 $SCRIPT_DIR/validate_data_structure.py"
     echo ""
 fi

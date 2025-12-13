@@ -28,36 +28,44 @@ ssh "$SERVER" "mkdir -p $REMOTE_PATH"
 # Copy project files to server
 echo "Copying files to server..."
 
-# Check if rsync is available on remote server
 if ssh "$SERVER" "command -v rsync" &> /dev/null; then
     echo "Using rsync for file transfer..."
     rsync -avz --progress \
-        --exclude 'saved_html/' \
+        --exclude 'data/' \
+        --exclude 'saved_html_backup/' \
+        --exclude 'saved_json_backup/' \
         --exclude '__pycache__/' \
         --exclude '*.pyc' \
         --exclude '.git/' \
         --exclude 'debug.log' \
+        --exclude 'download_jobs.log' \
         --exclude '.venv/' \
         --exclude 'venv/' \
         fetch_lobbyx.py \
         parse_html_to_json.py \
         generate_dashboard_api.py \
+        download_job_pages.py \
         dashboard_server.py \
         dashboard.html \
         requirements.txt \
         setup_server.sh \
         setup_cron.sh \
+        validate_data_structure.py \
+        migrate_to_data_folder.py \
         "$SERVER:$REMOTE_PATH/"
 else
     echo "rsync not found on server, using scp instead..."
     scp fetch_lobbyx.py \
         parse_html_to_json.py \
         generate_dashboard_api.py \
+        download_job_pages.py \
         dashboard_server.py \
         dashboard.html \
         requirements.txt \
         setup_server.sh \
         setup_cron.sh \
+        validate_data_structure.py \
+        migrate_to_data_folder.py \
         "$SERVER:$REMOTE_PATH/"
 fi
 
