@@ -24,8 +24,15 @@ def generate_json_file_list(base_dir='data', output_dir='api'):
     # Filter out consolidated_unique.json
     json_files = [f for f in json_files if f.name != 'consolidated_unique.json']
     
-    # Convert to relative paths from base_dir (not cwd)
-    relative_files = [str(f.relative_to(base_path.parent)) for f in sorted(json_files, reverse=True)]
+    # Convert to relative paths and create objects with path property
+    file_objects = []
+    for json_file in sorted(json_files, reverse=True):
+        relative_path = str(json_file.relative_to(base_path.parent))
+        file_objects.append({
+            'path': relative_path,
+            'name': json_file.stem,
+            'date': str(json_file.parent)
+        })
     
     # Create output directory
     output_path = Path(output_dir)
@@ -33,15 +40,15 @@ def generate_json_file_list(base_dir='data', output_dir='api'):
     
     # Write file list
     file_list = {
-        'files': relative_files,
-        'count': len(relative_files)
+        'files': file_objects,
+        'count': len(file_objects)
     }
     
     output_file = output_path / 'list-json-files.json'
     with open(output_file, 'w') as f:
         json.dump(file_list, f, indent=2)
     
-    print(f"✓ Generated file list with {len(relative_files)} files")
+    print(f"✓ Generated file list with {len(file_objects)} files")
     print(f"✓ Saved to {output_file}")
 
 
