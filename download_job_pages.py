@@ -109,13 +109,13 @@ def download_job_page(job_data):
     post_id = job_data['post_id']
     
     try:
-        logging.info(f"Downloading job {post_id}: {url}")
+        logging.debug(f"Downloading job {post_id}: {url}")
         
-        # Download with timeout and headers
+        # Download with shorter timeout and headers
         headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
         }
-        response = requests.get(url, timeout=10, headers=headers)
+        response = requests.get(url, timeout=5, headers=headers)
         response.raise_for_status()
         
         # Create directory structure: data/YYYY/MM/DD/
@@ -136,40 +136,49 @@ def download_job_page(job_data):
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(response.text)
         
-        logging.info(f"  ✓ Saved to {filepath}")
+        logging.debug(f"  ✓ Saved job_{post_id}")
         return True, filepath
         
     except requests.exceptions.Timeout:
-        logging.error(f"  ✗ Timeout downloading {url}")
+        logging.debug(f"  ✗ Timeout: {post_id}")
         return False, None
     except requests.exceptions.RequestException as e:
-        logging.error(f"  ✗ Error downloading {url}: {e}")
+        logging.debug(f"  ✗ Error {post_id}: {type(e).__name__}")
         return False, None
     except Exception as e:
-        logging.error(f"  ✗ Unexpected error for {url}: {e}")
+        logging.debug(f"  ✗ Unexpected error for {post_id}: {type(e).__name__}")
         return False, None
 
 
 def main():
     """Main entry point."""
-    print("=" * 60)
-    print("Job Page Downloader")
-    print("=" * 60)
+    logging.info("=" * 60)
+    logging.info("Job Page Downloader")
+    logging.info("=" * 60)
     
     # Get new jobs
     new_jobs = get_new_jobs_from_json()
     
     if not new_jobs:
         logging.info("No new jobs to download")
-        print("No new jobs to download")
         return
     
-    # Download pages
+    # Limit to first 100 to avoid excessive downloads
+    MAX_DOWNLOADS = 100
+    jobs_to_download = new_jobs[:MAX_DOWNLOADS]
+    
+    if len(new_jobs) > MAX_DOWNLOADS:
+        logging.info(f"Limiting downloads to {MAX_DOWNLOADS} jobs (found {len(new_jobs)} new jobs)")
+    else:
+        logging.info(f"Downloading {len(jobs_to_download)} new job pages")
+    
+    # Download pages with progress reporting
     successful = 0
     failed = 0
     
-    for idx, job in enumerate(new_jobs, 1):
-        print(f"\n[{idx}/{len(new_jobs)}] Downloading: {job['position']} at {job['unit']}")
+    for idx, job in enumerate(jobs_to_download, 1):
+        progress_pct = (idx / len(jobs_to_download)) * 100
+        logging.info(f"[{idx}/{len(jobs_to_download)} ({progress_pct:.0f}%)] {job['position'][:50]}")
         success, filepath = download_job_page(job)
         
         if success:
@@ -177,12 +186,13 @@ def main():
         else:
             failed += 1
     
-    print("\n" + "=" * 60)
-    print(f"Download Summary:")
-    print(f"  Successful: {successful}")
-    print(f"  Failed: {failed}")
-    print(f"  Total: {len(new_jobs)}")
-    print("=" * 60)
+    logging.info("=" * 60)
+    logging.info(f"Download Summary:")
+    logging.info(f"  Successful: {successful}/{len(jobs_to_download)}")
+    logging.info(f"  Failed: {failed}/{len(jobs_to_download)}")
+    if len(new_jobs) > MAX_DOWNLOADS:
+        logging.info(f"  Remaining: {len(new_jobs) - MAX_DOWNLOADS} jobs")
+    logging.info("=" * 60)
 
 
 if __name__ == '__main__':
