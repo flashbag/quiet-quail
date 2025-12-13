@@ -2,6 +2,16 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Data files - too large and frequently changing
+data/**/*.html
+data/**/*.json
+!data/.gitkeep
+!data/*/.gitkeep
+!data/*/*/.gitkeep
+!data/*/*/*/.gitkeep
+
+# Old data locations (kept for compatibility)
 saved_html/*
 !saved_html/.gitkeep
 saved_json/*
@@ -20,8 +30,11 @@ debug.log
 cron.log
 *.log.*
 
-# Dashboard API
-api/
+# Downloaded URLs tracking
+downloaded_urls.json
+
+# Dashboard API (can be regenerated)
+api/list-json-files.json
 
 # Virtual environments
 venv/
@@ -33,6 +46,11 @@ ENV/
 *.backup
 *.backup.*
 /etc/resolv.conf.backup*
+
+# Backups from migration
+saved_html_backup/
+saved_json_backup/
+job_pages_backup/
 
 # IDE
 .vscode/
