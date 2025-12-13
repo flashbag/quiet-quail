@@ -26,7 +26,7 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
         # Handle API endpoints
         if path == '/api/files':
             self.serve_file_list()
-        elif path.startswith('/saved_json/'):
+        elif path.startswith('/data/'):
             self.serve_json_file(path)
         elif path == '/' or path == '':
             self.serve_file('dashboard.html', 'text/html; charset=utf-8')
@@ -80,11 +80,28 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
     def serve_file_list(self):
         """Serve the file list as JSON."""
         try:
-            saved_json_dir = Path('saved_json')
+            # Try to use pre-generated API file first
+            api_file = Path('api/list-json-files.json')
+            if api_file.exists():
+                with open(api_file, 'r') as f:
+                    response = f.read().encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Content-Length', len(response))
+                self.end_headers()
+                self.wfile.write(response)
+                return
+            
+            # Fallback: scan data directory
+            data_dir = Path('data')
             files_list = []
             
-            if saved_json_dir.exists():
-                for json_file in sorted(saved_json_dir.rglob('*.json'), reverse=True):
+            if data_dir.exists():
+                for json_file in sorted(data_dir.rglob('*.json'), reverse=True):
+                    # Skip consolidated_unique.json in the listing (handle separately)
+                    if json_file.name == 'consolidated_unique.json':
+                        continue
                     relative_path = json_file.relative_to('.')
                     files_list.append({
                         'path': str(relative_path),

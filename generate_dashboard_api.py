@@ -9,8 +9,8 @@ import json
 from pathlib import Path
 
 
-def generate_json_file_list(base_dir='saved_json', output_dir='api'):
-    """Generate a list of all JSON files in saved_json directory."""
+def generate_json_file_list(base_dir='data', output_dir='api'):
+    """Generate a list of all JSON files in data directory."""
     
     base_path = Path(base_dir).resolve()
     
@@ -20,6 +20,9 @@ def generate_json_file_list(base_dir='saved_json', output_dir='api'):
     
     # Find all JSON files
     json_files = list(base_path.rglob('*.json'))
+    
+    # Filter out consolidated_unique.json
+    json_files = [f for f in json_files if f.name != 'consolidated_unique.json']
     
     # Convert to relative paths from base_dir (not cwd)
     relative_files = [str(f.relative_to(base_path.parent)) for f in sorted(json_files, reverse=True)]
