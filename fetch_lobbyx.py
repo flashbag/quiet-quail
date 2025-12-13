@@ -44,11 +44,11 @@ with sync_playwright() as p:
             logging.error(f"Error or no more load-more button: {e}")
             break
 
-    # Create a three-level directory structure for saved HTML files
+    # Create a three-level directory structure for data files
     subfolder1 = time.strftime("%Y")
     subfolder2 = time.strftime("%m")
     subfolder3 = time.strftime("%d")
-    output_dir = os.path.join("saved_html", subfolder1, subfolder2, subfolder3)
+    output_dir = os.path.join("data", subfolder1, subfolder2, subfolder3)
     os.makedirs(output_dir, exist_ok=True)
 
     # Save the page content to an HTML file with a timestamp
@@ -76,6 +76,22 @@ try:
         logging.warning(f"HTML to JSON parsing had issues: {result.stderr}")
 except Exception as e:
     logging.warning(f"Could not run parse_html_to_json.py: {e}")
+
+# Download individual job pages for new jobs
+logging.debug("Downloading individual job pages...")
+try:
+    result = subprocess.run(
+        ["python3", "download_job_pages.py"],
+        capture_output=True,
+        text=True,
+        timeout=600
+    )
+    if result.returncode == 0:
+        logging.debug("Job page downloads completed successfully")
+    else:
+        logging.warning(f"Job page downloads had issues: {result.stderr}")
+except Exception as e:
+    logging.warning(f"Could not run download_job_pages.py: {e}")
 
 # Generate dashboard API file
 logging.debug("Generating dashboard API file...")

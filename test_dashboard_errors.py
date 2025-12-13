@@ -96,7 +96,7 @@ def validate_js_syntax():
 def check_json_validity():
     """Check if generated JSON files are valid"""
     
-    saved_json_dir = Path('saved_json')
+    saved_json_dir = Path('data')
     json_files = list(saved_json_dir.glob('*.json')) + list(saved_json_dir.glob('*/*.json')) + list(saved_json_dir.glob('*/*/*.json'))
     
     print("\n" + "=" * 70)

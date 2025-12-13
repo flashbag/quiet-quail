@@ -19,7 +19,7 @@ class TestJobDuplicates(unittest.TestCase):
         self.post_ids = defaultdict(list)
         self.files_data = {}
         
-        saved_json_dir = Path('saved_json')
+        saved_json_dir = Path('data')
         if saved_json_dir.exists():
             for json_file in sorted(saved_json_dir.rglob('*.json')):
                 try:
@@ -121,7 +121,7 @@ class TestDuplicateReport(unittest.TestCase):
         all_posts = []
         post_ids = defaultdict(list)
         
-        saved_json_dir = Path('saved_json')
+        saved_json_dir = Path('data')
         if saved_json_dir.exists():
             for json_file in sorted(saved_json_dir.rglob('*.json')):
                 try:

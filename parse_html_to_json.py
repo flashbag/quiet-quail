@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Parse HTML files from saved_html directory and extract job postings to JSON files.
+"""Parse HTML files from data directory and extract job postings to JSON files.
 Maintains the same directory structure (YYYY/MM/DD) for JSON output.
 """
 
@@ -103,9 +103,9 @@ def parse_html_file(html_path):
         return []
 
 
-def process_all_html_files(base_dir='saved_html', output_base_dir='saved_json'):
+def process_all_html_files(base_dir='data', output_base_dir='data'):
     """
-    Process all HTML files in saved_html directory.
+    Process all HTML files in data directory.
     Creates corresponding JSON files with the same directory structure.
     """
     base_path = Path(base_dir)
