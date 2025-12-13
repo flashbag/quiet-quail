@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""
 """Parse HTML files from data directory and extract job postings to JSON files.
 Maintains the same directory structure (YYYY/MM/DD) for JSON output.
 """
