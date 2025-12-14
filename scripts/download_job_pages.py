@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Download individual job pages for new job postings.
-Only downloads if the URL hasn't been downloaded before.
-Stores downloaded pages in job_pages/ directory structure.
+Uses atomic file-based mechanism: if job_{ID}.html exists, it's already downloaded.
+Stores downloaded pages in data/job-pages/{ID:3}/{ID:3}/ directory structure.
+No central tracking file needed - file existence = downloaded.
 """
 
 import os
@@ -23,37 +24,23 @@ logging.basicConfig(
     ]
 )
 
-# File to track downloaded URLs
-DOWNLOADED_URLS_FILE = "downloaded_urls.json"
+def get_job_page_path(post_id):
+    """Get canonical path for a job page based on ID."""
+    id_str = str(post_id).zfill(6)
+    return Path('data') / 'job-pages' / id_str[0:3] / id_str[3:6] / f"job_{post_id}.html"
 
-def load_downloaded_urls():
-    """Load set of already downloaded URLs from file."""
-    if os.path.exists(DOWNLOADED_URLS_FILE):
-        try:
-            with open(DOWNLOADED_URLS_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return set(data.get('urls', []))
-        except Exception as e:
-            logging.warning(f"Could not load downloaded URLs file: {e}")
-            return set()
-    return set()
-
-
-def save_downloaded_urls(urls):
-    """Save set of downloaded URLs to file."""
-    try:
-        with open(DOWNLOADED_URLS_FILE, 'w', encoding='utf-8') as f:
-            json.dump({'urls': list(urls), 'last_updated': datetime.now().isoformat()}, f)
-    except Exception as e:
-        logging.error(f"Could not save downloaded URLs file: {e}")
+def is_already_downloaded(post_id):
+    """Check if job page already exists (atomic check)."""
+    path = get_job_page_path(post_id)
+    return path.exists()
 
 
 def get_new_jobs_from_json(json_base_dir='data'):
     """
     Extract all jobs from JSON files and identify new ones.
-    Returns list of (post_id, url, job_data) tuples for new jobs.
+    Uses atomic file-existence check instead of tracking URLs.
+    Returns list of job dicts for jobs that haven't been downloaded yet.
     """
-    downloaded_urls = load_downloaded_urls()
     new_jobs = []
     
     json_path = Path(json_base_dir)
@@ -72,30 +59,29 @@ def get_new_jobs_from_json(json_base_dir='data'):
                 posts = data.get('posts', [])
                 
                 for post in posts:
+                    post_id = post.get('post_id')
                     url = post.get('url', '')
-                    if url and url not in downloaded_urls:
+                    
+                    # Only add if not already downloaded (atomic check)
+                    if post_id and url and not is_already_downloaded(post_id):
                         new_jobs.append({
-                            'post_id': post.get('post_id'),
+                            'post_id': post_id,
                             'url': url,
                             'position': post.get('position', 'Unknown'),
                             'unit': post.get('unit_name', 'Unknown'),
                             'source_date': json_file.parent.name
                         })
-                        downloaded_urls.add(url)
         except Exception as e:
             logging.warning(f"Error reading {json_file}: {e}")
     
-    # Remove duplicates (keep first occurrence)
+    # Remove duplicates by post_id (keep first occurrence)
     unique_jobs = {}
     for job in new_jobs:
-        if job['url'] not in unique_jobs:
-            unique_jobs[job['url']] = job
+        if job['post_id'] not in unique_jobs:
+            unique_jobs[job['post_id']] = job
     
     new_jobs = list(unique_jobs.values())
     logging.info(f"Found {len(new_jobs)} new job URLs to download")
-    
-    # Save updated downloaded URLs
-    save_downloaded_urls(downloaded_urls)
     
     return new_jobs
 
@@ -118,20 +104,15 @@ def download_job_page(job_data):
         response = requests.get(url, timeout=5, headers=headers)
         response.raise_for_status()
         
-        # Create ID-based directory structure: data/job-pages/{ID:3}/{ID:3}/
-        id_str = str(post_id).zfill(6)
-        output_dir = os.path.join('data', 'job-pages', id_str[0:3], id_str[3:6])
-        os.makedirs(output_dir, exist_ok=True)
+        # Use the canonical path from get_job_page_path()
+        output_path = get_job_page_path(post_id)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Save with post_id as filename
-        filename = f"job_{post_id}.html"
-        filepath = os.path.join(output_dir, filename)
-        
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(response.text)
         
         logging.debug(f"  ✓ Saved job_{post_id}")
-        return True, filepath
+        return True, str(output_path)
         
     except requests.exceptions.Timeout:
         logging.debug(f"  ✗ Timeout: {post_id}")
