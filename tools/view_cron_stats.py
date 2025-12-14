@@ -77,7 +77,7 @@ def print_single_stat(stat):
 
 def main():
     """Main entry point."""
-    num_runs = 1
+    num_runs = 10  # Show last 10 runs by default (like analyze_cron_stats.py)
     raw_mode = False
     
     # Parse arguments
