@@ -991,19 +991,26 @@
         async function isJobClosed(postId) {
             // Check if job HTML file contains 'На жаль, вакансія вже закрита!' (Job closed message)
             try {
-                const jobPath = window.downloadedJobs && window.downloadedJobs[postId];
-                if (!jobPath) {
+                const jobInfo = window.downloadedJobs && window.downloadedJobs[postId];
+                if (!jobInfo || !jobInfo.path) {
+                    console.debug(`Job ${postId}: No download info found`);
                     return false; // No downloaded file
                 }
                 
-                const response = await fetch(`/${jobPath.path}`);
+                const filePath = jobInfo.path;
+                console.debug(`Checking if job ${postId} is closed: ${filePath}`);
+                
+                const response = await fetch(filePath);
                 if (!response.ok) {
+                    console.warn(`Could not fetch job ${postId}: ${response.status}`);
                     return false;
                 }
                 
                 const htmlContent = await response.text();
                 // Check for Ukrainian "closed vacancy" message
-                return htmlContent.includes('На жаль, вакансія вже закрита!');
+                const isClosed = htmlContent.includes('На жаль, вакансія вже закрита!');
+                console.debug(`Job ${postId}: closed=${isClosed}`);
+                return isClosed;
             } catch (e) {
                 console.warn(`Could not check if job ${postId} is closed:`, e);
                 return false;
@@ -1076,21 +1083,31 @@
             document.getElementById('jobsContainer').innerHTML = `<div class="jobs-grid">${jobsHTML}</div>`;
             
             // Check for closed jobs asynchronously (after display)
-            posts.slice(0, 50).forEach(async post => {
-                if (window.downloadedJobs && window.downloadedJobs[post.post_id]) {
+            const jobsToCheck = posts.slice(0, 50).filter(post => window.downloadedJobs && window.downloadedJobs[post.post_id]);
+            console.log(`Checking ${jobsToCheck.length} jobs for closed status`);
+            
+            jobsToCheck.forEach(async post => {
+                try {
                     const isClosed = await isJobClosed(post.post_id);
                     if (isClosed) {
+                        console.log(`Marking job ${post.post_id} as closed`);
                         const badge = document.getElementById(`closed-badge-${post.post_id}`);
                         if (badge) {
                             badge.style.display = 'inline-block';
+                            console.log(`✓ Badge shown for job ${post.post_id}`);
+                        } else {
+                            console.warn(`Badge not found for job ${post.post_id}`);
                         }
                         // Also add a visual indicator to the card
                         const card = document.querySelector(`[data-post-id="${post.post_id}"]`);
                         if (card) {
                             card.style.opacity = '0.7';
                             card.style.borderLeft = '4px solid #dc3545';
+                            console.log(`✓ Card styled for job ${post.post_id}`);
                         }
                     }
+                } catch (e) {
+                    console.error(`Error checking job ${post.post_id}:`, e);
                 }
             });
         }
