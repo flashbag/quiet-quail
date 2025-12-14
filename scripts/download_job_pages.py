@@ -301,6 +301,9 @@ def generate_all_job_metadata(skip_existing=True):
             failed += 1
     
     return generated, skipped, failed
+
+
+def download_job_page(job_data):
     """
     Download individual job page and create metadata JSON.
     Returns (success: bool, file_path: str or None)
