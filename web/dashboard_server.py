@@ -27,7 +27,8 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
         if path == '/api/files':
             self.serve_file_list()
         elif path.startswith('/data/'):
-            self.serve_json_file(path)
+            # Serve data files (JSON, etc)
+            self.serve_data_file(path)
         elif path == '/' or path == '':
             self.serve_file('dashboard.html', 'text/html; charset=utf-8')
         else:
@@ -37,6 +38,45 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             except FileNotFoundError:
                 self.send_error(404)
     
+    def serve_data_file(self, path):
+        """Serve data files (JSON) from the data directory."""
+        # Remove /data/ prefix and construct safe path
+        relative_path = path[6:]  # Remove '/data/'
+        
+        # Security: prevent directory traversal
+        if '..' in relative_path or relative_path.startswith('/'):
+            self.send_error(403)
+            return
+        
+        # Construct full path
+        project_root = Path(__file__).parent.parent
+        file_path = project_root / 'data' / relative_path
+        
+        # Verify file is within data directory
+        try:
+            file_path.resolve().relative_to(project_root.resolve() / 'data')
+        except ValueError:
+            self.send_error(403)
+            return
+        
+        if not file_path.exists() or not file_path.is_file():
+            self.send_error(404)
+            return
+        
+        # Read and serve file
+        try:
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Length', len(content))
+            self.end_headers()
+            self.wfile.write(content)
+        except Exception as e:
+            self.send_error(500, str(e))
+
     def serve_file(self, file_path, content_type=None):
         """Serve a static file with proper headers."""
         file_path = Path(file_path)
