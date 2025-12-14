@@ -30,9 +30,31 @@ def get_job_page_path(post_id):
     return Path('data') / 'job-pages' / id_str[0:3] / id_str[3:6] / f"job_{post_id}.html"
 
 def is_already_downloaded(post_id):
-    """Check if job page already exists (atomic check)."""
+    """
+    Check if job page is already downloaded and valid.
+    Verifies: file exists, is not empty, and contains valid HTML structure.
+    """
     path = get_job_page_path(post_id)
-    return path.exists()
+    
+    # Check if file exists
+    if not path.exists():
+        return False
+    
+    # Check if file is not empty
+    if path.stat().st_size == 0:
+        return False
+    
+    # Check if file contains valid HTML structure (common element in all job pages)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read(1000)  # Read first 1KB to check for common elements
+            # Check for DOCTYPE and meta charset which appear in all valid job pages
+            if '<!DOCTYPE html>' in content and '<meta charset="UTF-8">' in content:
+                return True
+    except Exception:
+        pass
+    
+    return False
 
 
 def get_new_jobs_from_json(json_base_dir='data'):
