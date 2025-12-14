@@ -3,11 +3,14 @@
 Analyze cron run statistics from the JSONL stats file.
 Provides summary statistics and trends over time.
 
+Location: logs/cron_stats.jsonl (JSONL format)
+
 Usage:
     python3 tools/analyze_cron_stats.py              # Show last 10 runs
     python3 tools/analyze_cron_stats.py --all        # Show all runs
     python3 tools/analyze_cron_stats.py --days 7     # Show last 7 days
     python3 tools/analyze_cron_stats.py --csv        # Export to CSV
+    python3 tools/analyze_cron_stats.py --timeline   # Show timeline chart
 """
 
 import json
@@ -100,11 +103,32 @@ def export_csv(stats):
         print(f"{s['timestamp']},{s['new_jobs_found']},{s['jobs_downloaded']},{s['download_successful']},{s['download_failed']},{s['metadata_generated']},{s['metadata_skipped']},{s['metadata_failed']}")
 
 
+def print_timeline(stats):
+    """Print simple text timeline chart."""
+    if not stats:
+        print("No stats available")
+        return
+    
+    print("\nTimeline - Jobs Found per Run:")
+    print("-" * 70)
+    
+    max_jobs = max(s["new_jobs_found"] for s in stats) if stats else 1
+    scale = 50 / max(max_jobs, 1)  # Scale to 50 chars
+    
+    for s in stats:
+        ts = s["timestamp"].split("T")[1][:5]  # HH:MM format
+        jobs = s["new_jobs_found"]
+        bar_length = int(jobs * scale)
+        bar = "█" * bar_length if bar_length > 0 else "·"
+        print(f"{ts}  {bar:50} {jobs:3} jobs")
+
+
 def main():
     """Main entry point."""
     limit = 10
     days = None
     csv_mode = False
+    timeline_mode = False
     
     # Parse arguments
     for arg in sys.argv[1:]:
@@ -112,13 +136,24 @@ def main():
             limit = None
         elif arg == "--csv":
             csv_mode = True
+        elif arg == "--timeline":
+            timeline_mode = True
         elif arg.startswith("--days"):
             days = int(arg.split("=")[1])
     
     stats = read_stats(limit=limit, days=days)
     
+    if not stats:
+        print("No cron statistics available")
+        print("Location: logs/cron_stats.jsonl")
+        print("\nStats are recorded when download_job_pages.py runs.")
+        return
+    
     if csv_mode:
         export_csv(stats)
+    elif timeline_mode:
+        print_table(stats)
+        print_timeline(stats)
     else:
         print_table(stats)
         print_summary(stats)
