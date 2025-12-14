@@ -7,26 +7,28 @@ set +e  # Don't exit on error, handle manually
 
 # Get the absolute path of the project directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Get the project root (parent of config dir)
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 echo "==================================="
 echo "Setting up cron job"
-echo "Project directory: $SCRIPT_DIR"
+echo "Project directory: $PROJECT_ROOT"
 echo "Current user: $(whoami)"
 echo "==================================="
 echo ""
 
 # Check if venv exists
-if [ ! -f "$SCRIPT_DIR/venv/bin/python3" ]; then
-    echo "❌ Error: Virtual environment not found at $SCRIPT_DIR/venv"
+if [ ! -d "$PROJECT_ROOT/venv" ]; then
+    echo "❌ Error: Virtual environment not found at $PROJECT_ROOT/venv"
     echo "Please run setup_server.sh first"
     exit 1
 fi
 
 # Make wrapper script executable
-chmod +x "$SCRIPT_DIR/cron_wrapper.sh"
+chmod +x "$PROJECT_ROOT/config/cron_wrapper.sh"
 
 # Define the cron job (uses wrapper script for proper venv handling)
-CRON_JOB="0 */6 * * * $SCRIPT_DIR/cron_wrapper.sh"
+CRON_JOB="0 */6 * * * $PROJECT_ROOT/config/cron_wrapper.sh"
 
 # Get current crontab
 CURRENT_CRON=$(crontab -l 2>/dev/null)
@@ -38,9 +40,9 @@ if [ $CRON_RESULT -eq 0 ]; then
     echo ""
     
     # Check if cron job already exists
-    if echo "$CURRENT_CRON" | grep -F "fetch_lobbyx.py" > /dev/null 2>&1; then
+    if echo "$CURRENT_CRON" | grep -F "cron_wrapper.sh" > /dev/null 2>&1; then
         echo "⚠️  A cron job for fetch_lobbyx.py already exists:"
-        echo "$CURRENT_CRON" | grep -F "fetch_lobbyx.py"
+        echo "$CURRENT_CRON" | grep -F "cron_wrapper.sh"
         echo ""
         read -p "Do you want to replace it? (y/n): " -n 1 -r
         echo
@@ -51,7 +53,7 @@ if [ $CRON_RESULT -eq 0 ]; then
         
         # Remove existing cron job
         echo "Removing existing cron job..."
-        echo "$CURRENT_CRON" | grep -v -F "fetch_lobbyx.py" | crontab -
+        echo "$CURRENT_CRON" | grep -v -F "cron_wrapper.sh" | crontab -
         if [ $? -ne 0 ]; then
             echo "❌ Failed to remove old cron job"
             exit 1
@@ -85,13 +87,13 @@ if [ $? -eq 0 ]; then
     sleep 1
     
     VERIFY_CRON=$(crontab -l 2>/dev/null)
-    if echo "$VERIFY_CRON" | grep -F "fetch_lobbyx.py" > /dev/null; then
+    if echo "$VERIFY_CRON" | grep -F "cron_wrapper.sh" > /dev/null; then
         echo "✅ Verification successful! Cron job is installed."
         echo ""
         echo "Current crontab:"
         crontab -l
         echo ""
-        echo "Monitor logs with: tail -f $SCRIPT_DIR/cron.log"
+        echo "Monitor logs with: tail -f $PROJECT_ROOT/cron.log"
     else
         echo "❌ Verification failed! Cron job not found in crontab"
         exit 1
@@ -100,3 +102,6 @@ else
     echo "❌ Failed to add cron job"
     exit 1
 fi
+
+echo ""
+echo "Setup complete! Check logs with: tail -f $PROJECT_ROOT/cron.log"
