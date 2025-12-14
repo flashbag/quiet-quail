@@ -11,7 +11,10 @@ echo "==================================="
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
+# Get the project root (parent directory of config)
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# Change to project root for relative paths to work correctly
+cd "$PROJECT_ROOT"
 
 # Check if Python3 is installed
 if ! command -v python3 &> /dev/null; then
@@ -80,7 +83,7 @@ mkdir -p data
 # Run migration script if data needs consolidation
 if [ -d "saved_html" ] || [ -d "saved_json" ]; then
     echo "Consolidating existing data folders..."
-    python3 migrate_to_data_folder.py
+    python3 scripts/migrate_to_data_folder.py
 fi
 
 # Test the script
@@ -89,7 +92,7 @@ echo "==================================="
 echo "Testing the script..."
 echo "==================================="
 set +e  # Don't exit on error for test
-python3 fetch_lobbyx.py
+python3 scripts/fetch_lobbyx.py
 TEST_RESULT=$?
 set -e  # Re-enable exit on error
 
@@ -98,7 +101,7 @@ echo ""
 echo "==================================="
 echo "Validating data structure..."
 echo "==================================="
-python3 validate_data_structure.py
+python3 tools/validate_data_structure.py
 VALIDATION_RESULT=$?
 
 if [ $TEST_RESULT -eq 0 ] && [ $VALIDATION_RESULT -eq 0 ]; then
@@ -110,11 +113,11 @@ if [ $TEST_RESULT -eq 0 ] && [ $VALIDATION_RESULT -eq 0 ]; then
     echo ""
     echo "Next steps:"
     echo "1. Run setup_cron.sh to configure the cron job"
-    echo "   ./setup_cron.sh"
+    echo "   ./config/setup_cron.sh"
     echo ""
     echo "Or set up cron manually:"
     echo "   crontab -e"
-    echo "   Add: 0 */6 * * * cd $SCRIPT_DIR && $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/fetch_lobbyx.py >> $SCRIPT_DIR/cron.log 2>&1"
+    echo "   Add: 0 */6 * * * cd $PROJECT_ROOT && $PROJECT_ROOT/venv/bin/python3 $PROJECT_ROOT/scripts/fetch_lobbyx.py >> $PROJECT_ROOT/cron.log 2>&1"
     echo ""
 else
     echo ""
@@ -126,8 +129,8 @@ else
     echo "Validation result: $VALIDATION_RESULT"
     echo ""
     echo "Try running manually to see the error:"
-    echo "  source $SCRIPT_DIR/venv/bin/activate"
-    echo "  python3 $SCRIPT_DIR/fetch_lobbyx.py"
-    echo "  python3 $SCRIPT_DIR/validate_data_structure.py"
+    echo "  source $PROJECT_ROOT/venv/bin/activate"
+    echo "  python3 $PROJECT_ROOT/scripts/fetch_lobbyx.py"
+    echo "  python3 $PROJECT_ROOT/tools/validate_data_structure.py"
     echo ""
 fi
