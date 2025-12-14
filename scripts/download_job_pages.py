@@ -9,6 +9,7 @@ No central tracking file needed - file existence = downloaded.
 import os
 import json
 import logging
+import re
 from pathlib import Path
 import requests
 from urllib.parse import urlparse
@@ -55,6 +56,63 @@ def is_job_closed(post_id):
         pass
     
     return False
+
+def extract_main_content(html_content):
+    """
+    Extract main job posting content from HTML.
+    Returns cleaned, sanitized HTML content suitable for display.
+    """
+    try:
+        # Remove scripts and styles
+        content = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
+        content = re.sub(r'<style[^>]*>.*?</style>', '', content, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Try to find main article/content area
+        patterns = [
+            r'<main[^>]*>(.*?)</main>',
+            r'<article[^>]*>(.*?)</article>',
+            r'<div[^>]*class="[^"]*(?:content|main|posting|job)[^"]*"[^>]*>(.*?)</div>',
+            r'<section[^>]*>(.*?)</section>',
+        ]
+        
+        main_content = None
+        for pattern in patterns:
+            match = re.search(pattern, content, flags=re.DOTALL | re.IGNORECASE)
+            if match:
+                main_content = match.group(1)
+                break
+        
+        # Fallback: find the largest div
+        if not main_content:
+            divs = re.findall(r'<div[^>]*>(.*?)</div>', content, flags=re.DOTALL | re.IGNORECASE)
+            if divs:
+                main_content = max(divs, key=len)
+        
+        # Last resort: use body content
+        if not main_content:
+            body_match = re.search(r'<body[^>]*>(.*?)</body>', content, flags=re.DOTALL | re.IGNORECASE)
+            if body_match:
+                main_content = body_match.group(1)
+            else:
+                main_content = html_content
+        
+        # Clean up: remove navigation, footer, headers, sidebars
+        main_content = re.sub(r'<nav[^>]*>.*?</nav>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+        main_content = re.sub(r'<footer[^>]*>.*?</footer>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+        main_content = re.sub(r'<header[^>]*>.*?</header>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+        main_content = re.sub(r'<aside[^>]*>.*?</aside>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Remove common non-content elements
+        main_content = re.sub(r'<div[^>]*class="[^"]*(?:sidebar|nav|menu|ad)[^"]*"[^>]*>.*?</div>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+        
+        # Clean up excessive whitespace
+        main_content = re.sub(r'\s+', ' ', main_content)
+        main_content = main_content.strip()
+        
+        return main_content[:50000] if main_content else ""  # Limit to 50KB
+    except Exception as e:
+        logging.debug(f"Error extracting content: {e}")
+        return ""
 
 def is_already_downloaded(post_id):
     """
@@ -151,7 +209,7 @@ def get_new_jobs_from_json(json_base_dir='data'):
 
 def download_job_page(job_data):
     """
-    Download individual job page.
+    Download individual job page and create metadata JSON.
     Returns (success: bool, file_path: str or None)
     """
     url = job_data['url']
@@ -175,7 +233,29 @@ def download_job_page(job_data):
             f.write(response.text)
         
         # Check if job is closed
-        if is_job_closed(post_id):
+        is_closed = is_job_closed(post_id)
+        
+        # Extract main content for display
+        main_content = extract_main_content(response.text)
+        
+        # Create metadata JSON file alongside the HTML
+        metadata = {
+            'post_id': post_id,
+            'url': url,
+            'position': job_data.get('position', 'Unknown'),
+            'unit_name': job_data.get('unit', 'Unknown'),
+            'status': 'closed' if is_closed else 'open',
+            'is_closed': is_closed,
+            'content': main_content,
+            'downloaded_at': str(Path(output_path).stat().st_mtime)
+        }
+        
+        # Save metadata JSON in same folder as HTML
+        json_path = output_path.with_name(f"job_{post_id}.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        
+        if is_closed:
             logging.debug(f"  ✓ Saved job_{post_id} (⚠️ CLOSED)")
         else:
             logging.debug(f"  ✓ Saved job_{post_id}")

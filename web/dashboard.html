@@ -988,32 +988,21 @@
                 '<div class="col-12 text-center text-muted">No units found</div>';
         }
 
-        async function isJobClosed(postId) {
-            // Check if job HTML file contains 'На жаль, вакансія вже закрита!' (Job closed message)
+        async function getJobMetadata(postId) {
+            // Fetch pre-computed job metadata (content, status, etc)
             try {
-                const jobInfo = window.downloadedJobs && window.downloadedJobs[postId];
-                if (!jobInfo || !jobInfo.path) {
-                    console.debug(`Job ${postId}: No download info found`);
-                    return false; // No downloaded file
-                }
-                
-                const filePath = jobInfo.path;
-                console.debug(`Checking if job ${postId} is closed: ${filePath}`);
-                
-                const response = await fetch(filePath);
+                const response = await fetch(`/api/job-metadata/${postId}`);
                 if (!response.ok) {
-                    console.warn(`Could not fetch job ${postId}: ${response.status}`);
-                    return false;
+                    console.debug(`Metadata not found for job ${postId}`);
+                    return null;
                 }
                 
-                const htmlContent = await response.text();
-                // Check for Ukrainian "closed vacancy" message
-                const isClosed = htmlContent.includes('На жаль, вакансія вже закрита!');
-                console.debug(`Job ${postId}: closed=${isClosed}`);
-                return isClosed;
+                const metadata = await response.json();
+                console.debug(`Loaded metadata for job ${postId}: status=${metadata.status}`);
+                return metadata;
             } catch (e) {
-                console.warn(`Could not check if job ${postId} is closed:`, e);
-                return false;
+                console.warn(`Could not fetch metadata for job ${postId}:`, e);
+                return null;
             }
         }
 
@@ -1088,8 +1077,8 @@
             
             jobsToCheck.forEach(async post => {
                 try {
-                    const isClosed = await isJobClosed(post.post_id);
-                    if (isClosed) {
+                    const metadata = await getJobMetadata(post.post_id);
+                    if (metadata && metadata.is_closed) {
                         console.log(`Marking job ${post.post_id} as closed`);
                         const badge = document.getElementById(`closed-badge-${post.post_id}`);
                         if (badge) {
@@ -1333,18 +1322,13 @@
             modal.show();
             
             try {
-                // Fetch extracted content from server
-                const response = await fetch(`/api/job-content/${postId}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                // Fetch pre-computed metadata (much faster than server-side extraction)
+                const metadata = await getJobMetadata(postId);
                 
-                const data = await response.json();
-                
-                if (data.success && data.content) {
+                if (metadata && metadata.content) {
                     // Parse and clean the HTML content
                     const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = data.content;
+                    tempDiv.innerHTML = metadata.content;
                     
                     // Remove any remaining scripts or dangerous content
                     const scripts = tempDiv.querySelectorAll('script, iframe, [onclick], [onerror]');
@@ -1354,9 +1338,9 @@
                     const styledContent = `
                         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: var(--text-primary);">
                             <div style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                                <h4 style="margin-top: 0; color: var(--text-primary);">${jobInfo.position}</h4>
-                                <p style="margin: 5px 0; color: var(--text-secondary);"><strong>Unit:</strong> ${jobInfo.unit_name}</p>
-                                <p style="margin: 5px 0; color: var(--text-secondary);"><strong>Status:</strong> <span style="background: ${jobInfo.status === 'open' ? '#d4edda' : '#f8d7da'}; padding: 3px 8px; border-radius: 3px;">${jobInfo.status.toUpperCase()}</span></p>
+                                <h4 style="margin-top: 0; color: var(--text-primary);">${metadata.position}</h4>
+                                <p style="margin: 5px 0; color: var(--text-secondary);"><strong>Unit:</strong> ${metadata.unit_name}</p>
+                                <p style="margin: 5px 0; color: var(--text-secondary);"><strong>Status:</strong> <span style="background: ${metadata.status === 'open' ? '#d4edda' : '#f8d7da'}; padding: 3px 8px; border-radius: 3px;">${metadata.status.toUpperCase()}</span></p>
                             </div>
                             <div style="padding: 0 10px;">
                                 ${tempDiv.innerHTML}
@@ -1368,7 +1352,7 @@
                     bodyElement.innerHTML = `
                         <div style="text-align: center; padding: 40px; color: #999;">
                             <i class="fas fa-info-circle" style="font-size: 2rem; margin-bottom: 15px;"></i>
-                            <p>Could not extract job posting details from the HTML file.</p>
+                            <p>Could not load job posting details.</p>
                             <p style="font-size: 0.9rem; margin-top: 15px;">
                                 The content may have been formatted in a way that couldn't be automatically parsed.
                             </p>

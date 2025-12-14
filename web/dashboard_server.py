@@ -44,6 +44,8 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.serve_file_list()
         elif path == '/api/downloaded-jobs':
             self.serve_downloaded_jobs()
+        elif path.startswith('/api/job-metadata/'):
+            self.serve_job_metadata(path)
         elif path.startswith('/api/job-content/'):
             self.serve_job_content(path)
         elif path.startswith('/data/'):
@@ -285,6 +287,52 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             return main_content[:50000] if main_content else ""  # Limit to 50KB
         except Exception as e:
             return ""
+
+    def serve_job_metadata(self, path):
+        """Serve job metadata JSON (pre-computed during download)."""
+        try:
+            # Extract post_id from path (/api/job-metadata/12345 -> 12345)
+            post_id = path.split('/')[-1]
+            
+            # Security: validate post_id is numeric
+            if not post_id.isdigit():
+                self.send_error(400)
+                return
+            
+            project_root = Path(__file__).parent.parent
+            job_pages_dir = project_root / 'data' / 'job-pages'
+            
+            # Try to find the metadata JSON file in organized structure
+            json_file = None
+            if job_pages_dir.exists():
+                # Search for the metadata file recursively
+                for found_file in job_pages_dir.rglob(f'job_{post_id}.json'):
+                    json_file = found_file
+                    break
+            
+            if not json_file or not json_file.exists():
+                self.send_error(404)
+                return
+            
+            # Security: verify file is within job-pages directory
+            try:
+                json_file.resolve().relative_to(job_pages_dir.resolve())
+            except ValueError:
+                self.send_error(403)
+                return
+            
+            # Read and serve JSON file
+            with open(json_file, 'r', encoding='utf-8') as f:
+                response = f.read().encode('utf-8')
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Length', len(response))
+            self.end_headers()
+            self.wfile.write(response)
+        except Exception as e:
+            self.send_error(500, str(e))
 
     def serve_job_content(self, path):
         """Serve extracted main content from a job HTML page."""
