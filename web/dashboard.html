@@ -771,6 +771,12 @@
                 const response = await fetch('/api/files');
                 const fileData = await response.json();
                 
+                // Get list of downloaded job pages
+                const downloadedResponse = await fetch('/api/downloaded-jobs');
+                const downloadedData = await downloadedResponse.json();
+                window.downloadedJobs = downloadedData.downloaded || {};
+                console.log(`📥 Downloaded job pages: ${downloadedData.count}`);
+                
                 const fileList = (fileData.files || []).filter(file => !file.path.includes('consolidated_unique'));
                 document.getElementById('fileCount').textContent = fileList.length;
                 console.log('📁 Loading files:', fileList);
@@ -964,6 +970,10 @@
                     : 0;
                 const lifetimeDisplay = jobLifetime >= 24 ? `${Math.round(jobLifetime / 24)}d` : `${jobLifetime}h`;
                 
+                // Check if HTML page is downloaded
+                const isDownloaded = window.downloadedJobs && window.downloadedJobs[post.post_id];
+                const downloadedPagePath = isDownloaded ? window.downloadedJobs[post.post_id].path : null;
+                
                 return `
                 <div class="job-card ${post.status === 'closed' ? 'closed' : ''}">
                     <div class="job-card-content">
@@ -984,6 +994,8 @@
                                       title="Job lifetime from first to last appearance">
                                     ${lifetimeDisplay}
                                 </span>
+                                ${isDownloaded ? `<span style="background: #198754; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;" 
+                                      title="HTML page downloaded"><i class="fas fa-check"></i> Downloaded</span>` : ''}
                             </div>
                         </div>
                     </div>
@@ -991,6 +1003,9 @@
                         <a href="${post.url}" target="_blank" class="btn btn-sm btn-outline-secondary" style="flex: 1;">
                             External Link <i class="fas fa-external-link-alt"></i>
                         </a>
+                        ${isDownloaded ? `<a href="${downloadedPagePath}" target="_blank" class="btn btn-sm btn-success" style="flex: 0.8;" title="View downloaded HTML page">
+                            View Page <i class="fas fa-file-alt"></i>
+                        </a>` : ''}
                     </div>
                 </div>
             `;

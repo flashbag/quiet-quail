@@ -41,6 +41,8 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
         # Handle API endpoints
         if path == '/api/files':
             self.serve_file_list()
+        elif path == '/api/downloaded-jobs':
+            self.serve_downloaded_jobs()
         elif path.startswith('/data/'):
             # Serve data files (JSON, etc)
             self.serve_data_file(path)
@@ -182,6 +184,48 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Length', len(response))
             self.end_headers()
             self.wfile.write(response)
+
+    def serve_downloaded_jobs(self):
+        """Serve list of job IDs that have downloaded HTML pages."""
+        try:
+            project_root = Path(__file__).parent.parent
+            job_pages_dir = project_root / 'data' / 'job-pages'
+            downloaded_jobs = {}
+            
+            # Find all downloaded job pages
+            if job_pages_dir.exists():
+                for job_file in sorted(job_pages_dir.rglob('job_*.html')):
+                    # Extract post_id from filename (job_12345.html -> 12345)
+                    try:
+                        post_id = int(job_file.stem.split('_')[1])
+                        # Check if file is valid (non-empty, contains DOCTYPE)
+                        file_size = job_file.stat().st_size
+                        if file_size > 0:
+                            with open(job_file, 'r', encoding='utf-8') as f:
+                                content = f.read(500)
+                                if '<!DOCTYPE html>' in content:
+                                    # Get relative path from data root
+                                    rel_path = job_file.relative_to(project_root / 'data')
+                                    downloaded_jobs[str(post_id)] = {
+                                        'path': f'/data/{rel_path}',
+                                        'size': file_size
+                                    }
+                    except (ValueError, OSError):
+                        continue
+            
+            response = json.dumps({
+                'downloaded': downloaded_jobs,
+                'count': len(downloaded_jobs)
+            }).encode('utf-8')
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Length', len(response))
+            self.end_headers()
+            self.wfile.write(response)
+        except Exception as e:
+            self.send_error(500, str(e))
         except Exception as e:
             self.send_error(500, str(e))
     
