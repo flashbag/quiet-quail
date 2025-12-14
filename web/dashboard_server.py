@@ -289,7 +289,7 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             return ""
 
     def serve_job_metadata(self, path):
-        """Serve job metadata JSON (pre-computed during download)."""
+        """Serve job metadata JSON (pre-computed during download, or generated on-demand for backward compatibility)."""
         try:
             # Extract post_id from path (/api/job-metadata/12345 -> 12345)
             post_id = path.split('/')[-1]
@@ -302,28 +302,41 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             project_root = Path(__file__).parent.parent
             job_pages_dir = project_root / 'data' / 'job-pages'
             
-            # Try to find the metadata JSON file in organized structure
+            # Try to find the metadata JSON file first (fast path)
             json_file = None
             if job_pages_dir.exists():
-                # Search for the metadata file recursively
                 for found_file in job_pages_dir.rglob(f'job_{post_id}.json'):
                     json_file = found_file
                     break
             
+            # If metadata JSON doesn't exist, generate it on-demand (backward compatibility)
             if not json_file or not json_file.exists():
-                self.send_error(404)
-                return
-            
-            # Security: verify file is within job-pages directory
-            try:
-                json_file.resolve().relative_to(job_pages_dir.resolve())
-            except ValueError:
-                self.send_error(403)
-                return
-            
-            # Read and serve JSON file
-            with open(json_file, 'r', encoding='utf-8') as f:
-                response = f.read().encode('utf-8')
+                # Look for HTML file instead
+                html_file = None
+                if job_pages_dir.exists():
+                    for found_file in job_pages_dir.rglob(f'job_{post_id}.html'):
+                        html_file = found_file
+                        break
+                
+                if not html_file or not html_file.exists():
+                    self.send_error(404)
+                    return
+                
+                # Generate metadata on-the-fly
+                try:
+                    metadata = self.generate_job_metadata(post_id, html_file)
+                    response = json.dumps(metadata, ensure_ascii=False).encode('utf-8')
+                except Exception as e:
+                    self.send_error(500, f"Error generating metadata: {str(e)}")
+                    return
+            else:
+                # Read pre-computed metadata JSON
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        response = f.read().encode('utf-8')
+                except Exception as e:
+                    self.send_error(500, str(e))
+                    return
             
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
@@ -333,6 +346,34 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(response)
         except Exception as e:
             self.send_error(500, str(e))
+    
+    def generate_job_metadata(self, post_id, html_file):
+        """Generate metadata JSON for a job HTML file (for backward compatibility)."""
+        try:
+            with open(html_file, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            # Check if job is closed
+            is_closed = 'На жаль, вакансія вже закрита!' in html_content
+            
+            # Extract main content
+            main_content = self.extract_main_content(html_content)
+            
+            metadata = {
+                'post_id': int(post_id),
+                'url': '',  # Can't extract from HTML
+                'position': 'Unknown',  # Can't extract reliably
+                'unit_name': 'Unknown',  # Can't extract reliably
+                'status': 'closed' if is_closed else 'open',
+                'is_closed': is_closed,
+                'content': main_content,
+                'generated': True,  # Mark as generated on-the-fly
+                'downloaded_at': str(int(html_file.stat().st_mtime))
+            }
+            
+            return metadata
+        except Exception as e:
+            raise Exception(f"Failed to generate metadata for job {post_id}: {str(e)}")
 
     def serve_job_content(self, path):
         """Serve extracted main content from a job HTML page."""
