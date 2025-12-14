@@ -71,7 +71,7 @@ with sync_playwright() as p:
 logging.debug("Starting HTML to JSON parsing...")
 try:
     result = subprocess.run(
-        ["python3", "parse_html_to_json.py"],
+        ["python3", "scripts/parse_html_to_json.py"],
         capture_output=True,
         text=True,
         timeout=300
@@ -87,7 +87,7 @@ except Exception as e:
 logging.debug("Downloading individual job pages...")
 try:
     result = subprocess.run(
-        ["python3", "download_job_pages.py"],
+        ["python3", "scripts/download_job_pages.py"],
         capture_output=True,
         text=True,
         timeout=600
@@ -103,7 +103,7 @@ except Exception as e:
 logging.debug("Generating dashboard API file...")
 try:
     result = subprocess.run(
-        ["python3", "generate_dashboard_api.py"],
+        ["python3", "tools/generate_dashboard_api.py"],
         capture_output=True,
         text=True,
         timeout=60
