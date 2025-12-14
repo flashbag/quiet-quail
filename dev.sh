@@ -7,22 +7,23 @@ set -e
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# The script is in the project root, not in a subdirectory
+PROJECT_ROOT="$SCRIPT_DIR"
 
-# Check if watchdog is installed
+# Change to project root
 cd "$PROJECT_ROOT"
-
-if [ ! -d ".venv" ] && [ ! -d "venv" ]; then
-    echo "❌ Virtual environment not found!"
-    echo "Please run: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
-    exit 1
-fi
 
 # Activate virtual environment if it exists
 if [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
+    echo "✓ Activated virtual environment (.venv)"
 elif [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
+    echo "✓ Activated virtual environment (venv)"
+else
+    echo "❌ Virtual environment not found!"
+    echo "Please run: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+    exit 1
 fi
 
 # Check if watchdog is installed
@@ -35,4 +36,4 @@ echo "🎯 Starting Quiet-Quail Dashboard in Development Mode"
 echo "═══════════════════════════════════════════════════════════"
 
 # Run the dev server
-python3 "$SCRIPT_DIR/dashboard_dev.py" "$@"
+python3 "$PROJECT_ROOT/web/dashboard_dev.py" "$@"
