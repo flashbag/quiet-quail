@@ -31,14 +31,13 @@ def get_job_page_path(post_id):
 def is_already_downloaded(post_id):
     """
     Check if job page is already downloaded and valid.
-    Verifies: file exists, is not empty, and contains valid HTML structure.
-    Does NOT re-download if file exists and is valid.
+    Verifies: file exists, is not empty, and contains meta charset tag.
     
     Args:
         post_id: Job post ID
     
     Returns:
-        True if file exists and is valid
+        True if file exists, not empty, and has meta charset tag
         False if file needs to be downloaded
     """
     path = get_job_page_path(post_id)
@@ -51,12 +50,11 @@ def is_already_downloaded(post_id):
     if path.stat().st_size == 0:
         return False
     
-    # Check if file contains valid HTML structure (common element in all job pages)
+    # Check if file contains meta charset tag
     try:
         with open(path, 'r', encoding='utf-8') as f:
-            content = f.read(1000)  # Read first 1KB to check for common elements
-            # Check for DOCTYPE and meta charset which appear in all valid job pages
-            if '<!DOCTYPE html>' in content and '<meta charset="UTF-8">' in content:
+            content = f.read(1000)  # Read first 1KB to check for meta charset
+            if '<meta charset' in content:
                 return True
     except Exception:
         pass
