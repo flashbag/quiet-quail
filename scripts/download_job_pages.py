@@ -28,6 +28,34 @@ def get_job_page_path(post_id):
     id_str = str(post_id).zfill(6)
     return Path('data') / 'job-pages' / id_str[0:3] / id_str[3:6] / f"job_{post_id}.html"
 
+def is_job_closed(post_id):
+    """
+    Check if a job posting is closed.
+    A job is considered closed if the HTML contains the Ukrainian text:
+    'На жаль, вакансія вже закрита!'
+    
+    Args:
+        post_id: Job post ID
+    
+    Returns:
+        True if job is closed, False otherwise
+    """
+    path = get_job_page_path(post_id)
+    
+    if not path.exists():
+        return False
+    
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            # Check for the Ukrainian "closed vacancy" message
+            if 'На жаль, вакансія вже закрита!' in content:
+                return True
+    except Exception:
+        pass
+    
+    return False
+
 def is_already_downloaded(post_id):
     """
     Check if job page is already downloaded and valid.
@@ -146,7 +174,12 @@ def download_job_page(job_data):
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(response.text)
         
-        logging.debug(f"  ✓ Saved job_{post_id}")
+        # Check if job is closed
+        if is_job_closed(post_id):
+            logging.debug(f"  ✓ Saved job_{post_id} (⚠️ CLOSED)")
+        else:
+            logging.debug(f"  ✓ Saved job_{post_id}")
+        
         return True, str(output_path)
         
     except requests.exceptions.Timeout:

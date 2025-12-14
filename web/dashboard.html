@@ -988,6 +988,28 @@
                 '<div class="col-12 text-center text-muted">No units found</div>';
         }
 
+        async function isJobClosed(postId) {
+            // Check if job HTML file contains 'На жаль, вакансія вже закрита!' (Job closed message)
+            try {
+                const jobPath = window.downloadedJobs && window.downloadedJobs[postId];
+                if (!jobPath) {
+                    return false; // No downloaded file
+                }
+                
+                const response = await fetch(`/${jobPath.path}`);
+                if (!response.ok) {
+                    return false;
+                }
+                
+                const htmlContent = await response.text();
+                // Check for Ukrainian "closed vacancy" message
+                return htmlContent.includes('На жаль, вакансія вже закрита!');
+            } catch (e) {
+                console.warn(`Could not check if job ${postId} is closed:`, e);
+                return false;
+            }
+        }
+
         function displayJobs(data = null) {
             const posts = data || allData.flatMap(f => f.posts);
             
@@ -1014,12 +1036,15 @@
                 const downloadedPagePath = isDownloaded ? window.downloadedJobs[post.post_id].path : null;
                 
                 return `
-                <div class="job-card ${post.status === 'closed' ? 'closed' : ''} ${!isDownloaded ? 'not-downloaded' : ''}">
+                <div class="job-card ${post.status === 'closed' ? 'closed' : ''} ${!isDownloaded ? 'not-downloaded' : ''}" data-post-id="${post.post_id}">
                     <div class="job-card-content">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div class="flex-grow-1">
-                                <div class="job-position" onclick="showJobDetails('${post.post_id}', event)" style="cursor: pointer; color: #555;" title="Click to view details">
-                                    ${post.position}
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                    <div class="job-position" onclick="showJobDetails('${post.post_id}', event)" style="cursor: pointer; color: #555; margin: 0;" title="Click to view details">
+                                        ${post.position}
+                                    </div>
+                                    ${isDownloaded ? `<span id="closed-badge-${post.post_id}" style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75rem; font-weight: 600; display: none;" title="Job posting is closed">ЗАКРИТА</span>` : ''}
                                 </div>
                                 <div class="job-unit"><i class="fas fa-building"></i> ${post.unit_name}</div>
                             </div>
@@ -1049,6 +1074,25 @@
             }).join('');
 
             document.getElementById('jobsContainer').innerHTML = `<div class="jobs-grid">${jobsHTML}</div>`;
+            
+            // Check for closed jobs asynchronously (after display)
+            posts.slice(0, 50).forEach(async post => {
+                if (window.downloadedJobs && window.downloadedJobs[post.post_id]) {
+                    const isClosed = await isJobClosed(post.post_id);
+                    if (isClosed) {
+                        const badge = document.getElementById(`closed-badge-${post.post_id}`);
+                        if (badge) {
+                            badge.style.display = 'inline-block';
+                        }
+                        // Also add a visual indicator to the card
+                        const card = document.querySelector(`[data-post-id="${post.post_id}"]`);
+                        if (card) {
+                            card.style.opacity = '0.7';
+                            card.style.borderLeft = '4px solid #dc3545';
+                        }
+                    }
+                }
+            });
         }
 
         function setupFilters() {
