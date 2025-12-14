@@ -118,15 +118,9 @@ def download_job_page(job_data):
         response = requests.get(url, timeout=5, headers=headers)
         response.raise_for_status()
         
-        # Create directory structure: data/YYYY/MM/DD/
-        date_parts = job_data['source_date'].split('/')
-        if len(date_parts) >= 3:
-            year, month, day = date_parts[0], date_parts[1], date_parts[2]
-        else:
-            now = datetime.now()
-            year, month, day = now.strftime("%Y"), now.strftime("%m"), now.strftime("%d")
-        
-        output_dir = os.path.join('data', year, month, day)
+        # Create ID-based directory structure: data/job-pages/{ID:3}/{ID:3}/
+        id_str = str(post_id).zfill(6)
+        output_dir = os.path.join('data', 'job-pages', id_str[0:3], id_str[3:6])
         os.makedirs(output_dir, exist_ok=True)
         
         # Save with post_id as filename
