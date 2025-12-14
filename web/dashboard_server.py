@@ -8,11 +8,26 @@ import http.server
 import socketserver
 import os
 import json
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
 PORT = 8000
 HOST = '127.0.0.1'
+
+
+def get_port():
+    """Get port from command line argument or environment variable."""
+    # Check for environment variable (set by tests)
+    if 'DASHBOARD_PORT' in os.environ:
+        return int(os.environ['DASHBOARD_PORT'])
+    # Check for command line argument
+    if len(sys.argv) > 1:
+        try:
+            return int(sys.argv[1])
+        except ValueError:
+            pass
+    return PORT
 
 
 class DashboardHandler(http.server.SimpleHTTPRequestHandler):
@@ -195,14 +210,15 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
 def run_server():
     """Run the HTTP server."""
     os.chdir(Path(__file__).parent)
+    port = get_port()
     
     try:
-        with socketserver.TCPServer((HOST, PORT), DashboardHandler) as httpd:
+        with socketserver.TCPServer((HOST, port), DashboardHandler) as httpd:
             print("=" * 60)
             print("Quiet-Quail Dashboard Server")
             print("=" * 60)
-            print(f"✓ Server running at: http://{HOST}:{PORT}")
-            print(f"✓ Open in browser: http://localhost:{PORT}")
+            print(f"✓ Server running at: http://{HOST}:{port}")
+            print(f"✓ Open in browser: http://localhost:{port}")
             print(f"✓ Press Ctrl+C to stop")
             print("=" * 60)
             

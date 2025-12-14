@@ -24,7 +24,7 @@ except ImportError:
 
 class DashboardServer:
     """Internal server instance for testing."""
-    def __init__(self, port=8000):
+    def __init__(self, port=8001):
         self.port = port
         self.process = None
         self.base_url = f"http://localhost:{port}"
@@ -36,6 +36,7 @@ class DashboardServer:
             project_dir = Path(__file__).parent.parent
             env = os.environ.copy()
             env['PYTHONUNBUFFERED'] = '1'
+            env['DASHBOARD_PORT'] = str(self.port)  # Pass port to server
             
             # Start server process
             self.process = subprocess.Popen(
