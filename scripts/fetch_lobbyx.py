@@ -1,5 +1,6 @@
 import time
 import os
+import sys
 import logging
 import subprocess
 from playwright.sync_api import sync_playwright
@@ -13,6 +14,41 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+# Parse command-line arguments for cache control
+force_download = False
+skip_recent = True
+recent_hours = 1
+
+if len(sys.argv) > 1:
+    if sys.argv[1] in ["-h", "--help"]:
+        print("Usage: python3 fetch_lobbyx.py [options]")
+        print("\nOptions:")
+        print("  --force, -f         Force re-download all job pages (ignore cache)")
+        print("  --no-cache          Skip all recently-downloaded job pages")
+        print("  --cache-hours N     Customize cache window (default: 1 hour)")
+        print("  --help, -h          Show this help message")
+        print("\nExamples:")
+        print("  python3 fetch_lobbyx.py                    # Default: 1-hour cache")
+        print("  python3 fetch_lobbyx.py --force            # Force re-download all")
+        print("  python3 fetch_lobbyx.py --cache-hours 6    # Use 6-hour cache window")
+        sys.exit(0)
+    elif sys.argv[1] in ["-f", "--force"]:
+        force_download = True
+        skip_recent = False
+        logging.info("Cache mode: FORCE - Will re-download all job pages")
+    elif sys.argv[1] == "--no-cache":
+        skip_recent = False
+        logging.info("Cache mode: NO-CACHE - Will skip all recently-downloaded files")
+    elif sys.argv[1] == "--cache-hours" and len(sys.argv) > 2:
+        try:
+            recent_hours = int(sys.argv[2])
+            logging.info(f"Cache mode: CUSTOM - Using {recent_hours}-hour cache window")
+        except ValueError:
+            logging.error(f"Invalid cache-hours value: {sys.argv[2]}")
+            sys.exit(1)
+else:
+    logging.info("Cache mode: DEFAULT - Using 1-hour cache window")
 
 logging.debug("Starting script execution.")
 
@@ -86,8 +122,17 @@ except Exception as e:
 # Download individual job pages for new jobs
 logging.debug("Downloading individual job pages...")
 try:
+    # Build command with cache options
+    cmd = ["python3", "scripts/download_job_pages.py"]
+    if force_download:
+        cmd.append("--force")
+    elif not skip_recent:
+        cmd.append("--no-cache")
+    elif recent_hours != 1:
+        cmd.extend(["--cache-hours", str(recent_hours)])
+    
     result = subprocess.run(
-        ["python3", "scripts/download_job_pages.py"],
+        cmd,
         capture_output=True,
         text=True,
         timeout=600
