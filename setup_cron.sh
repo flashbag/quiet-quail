@@ -22,8 +22,11 @@ if [ ! -f "$SCRIPT_DIR/venv/bin/python3" ]; then
     exit 1
 fi
 
-# Define the cron job
-CRON_JOB="0 */6 * * * cd $SCRIPT_DIR && $SCRIPT_DIR/venv/bin/python3 $SCRIPT_DIR/fetch_lobbyx.py >> $SCRIPT_DIR/cron.log 2>&1"
+# Make wrapper script executable
+chmod +x "$SCRIPT_DIR/cron_wrapper.sh"
+
+# Define the cron job (uses wrapper script for proper venv handling)
+CRON_JOB="0 */6 * * * $SCRIPT_DIR/cron_wrapper.sh"
 
 # Get current crontab
 CURRENT_CRON=$(crontab -l 2>/dev/null)
