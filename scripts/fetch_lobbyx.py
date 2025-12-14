@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 import subprocess
+from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 # Configure logging for maximum debug output
@@ -49,6 +50,54 @@ if len(sys.argv) > 1:
             sys.exit(1)
 else:
     logging.info("Cache mode: DEFAULT - Using 1-hour cache window")
+
+def should_download_job_pages(skip_recent=True, recent_hours=1):
+    """
+    Check if job page directory has recently downloaded files.
+    Used to decide whether to call download_job_pages.py.
+    
+    Args:
+        skip_recent: If True, check for recent files
+        recent_hours: Hours threshold for "recent" files
+    
+    Returns:
+        True if should download (no recent files or force mode), False if cached
+    """
+    if not skip_recent:
+        # Force mode or no-cache mode: always download
+        return True
+    
+    # Check if any job page files were modified recently
+    job_pages_dir = Path('data/job-pages')
+    if not job_pages_dir.exists():
+        # No job pages downloaded yet
+        logging.debug("No previously downloaded job pages found, will download")
+        return True
+    
+    # Find all HTML files and check their modification times
+    html_files = list(job_pages_dir.rglob('*.html'))
+    if not html_files:
+        logging.debug("No previously downloaded job pages found, will download")
+        return True
+    
+    # Check if any files are recent
+    current_time = time.time()
+    recent_files = []
+    for html_file in html_files:
+        file_mtime = html_file.stat().st_mtime
+        age_seconds = current_time - file_mtime
+        age_hours = age_seconds / 3600
+        if age_hours < recent_hours:
+            recent_files.append((html_file.name, age_hours))
+    
+    if recent_files:
+        sample_file = recent_files[0]
+        logging.info(f"Found {len(recent_files)} recently downloaded files "
+                    f"(e.g., {sample_file[0]} - {sample_file[1]:.1f}h ago), skipping download (cache)")
+        return False
+    else:
+        logging.debug(f"No job pages modified in last {recent_hours} hour(s), will download")
+        return True
 
 logging.debug("Starting script execution.")
 
@@ -121,28 +170,22 @@ except Exception as e:
 
 # Download individual job pages for new jobs
 logging.debug("Downloading individual job pages...")
-try:
-    # Build command with cache options
-    cmd = ["python3", "scripts/download_job_pages.py"]
-    if force_download:
-        cmd.append("--force")
-    elif not skip_recent:
-        cmd.append("--no-cache")
-    elif recent_hours != 1:
-        cmd.extend(["--cache-hours", str(recent_hours)])
-    
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=600
-    )
-    if result.returncode == 0:
-        logging.debug("Job page downloads completed successfully")
-    else:
-        logging.warning(f"Job page downloads had issues: {result.stderr}")
-except Exception as e:
-    logging.warning(f"Could not run download_job_pages.py: {e}")
+if should_download_job_pages(skip_recent=skip_recent, recent_hours=recent_hours):
+    try:
+        result = subprocess.run(
+            ["python3", "scripts/download_job_pages.py"],
+            capture_output=True,
+            text=True,
+            timeout=600
+        )
+        if result.returncode == 0:
+            logging.debug("Job page downloads completed successfully")
+        else:
+            logging.warning(f"Job page downloads had issues: {result.stderr}")
+    except Exception as e:
+        logging.warning(f"Could not run download_job_pages.py: {e}")
+else:
+    logging.info("Skipping job page downloads (recent cache found)")
 
 # Generate dashboard API file
 logging.debug("Generating dashboard API file...")
