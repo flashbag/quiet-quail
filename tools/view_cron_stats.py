@@ -57,6 +57,13 @@ def print_single_stat(stat):
     """Pretty print a single stat entry."""
     print(f"\n{'='*70}")
     print(f"⏰ {format_timestamp(stat['timestamp'])}")
+    
+    # Check if this was a skipped run
+    if stat.get('note') == 'skipped - recent cache found':
+        print(f"{'='*70}")
+        print("⏭️  SKIPPED (Recent cache found - no jobs to check)")
+        return
+    
     print(f"{'='*70}")
     print(f"Jobs Found:        {stat['new_jobs_found']:>3}")
     print(f"Downloaded:        {stat['jobs_downloaded']:>3} ✓")

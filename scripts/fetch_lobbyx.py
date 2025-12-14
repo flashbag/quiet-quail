@@ -241,6 +241,31 @@ if should_download_job_pages(skip_recent=skip_recent, recent_hours=recent_hours)
         logging.warning(f"Could not run download_job_pages.py: {e}")
 else:
     logging.info("Skipping job page downloads (recent cache found)")
+    # Still log that we ran, even though we skipped downloads
+    try:
+        from pathlib import Path
+        from datetime import datetime
+        import json
+        
+        stats_file = Path("logs/cron_stats.jsonl")
+        stats_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        stats = {
+            "timestamp": datetime.now().isoformat(),
+            "new_jobs_found": 0,
+            "jobs_downloaded": 0,
+            "download_successful": 0,
+            "download_failed": 0,
+            "metadata_generated": 0,
+            "metadata_skipped": 0,
+            "metadata_failed": 0,
+            "note": "skipped - recent cache found"
+        }
+        
+        with open(stats_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(stats, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logging.debug(f"Could not write skip stats: {e}")
 
 # Generate dashboard API file
 logging.debug("Generating dashboard API file...")
