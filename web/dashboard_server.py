@@ -9,6 +9,7 @@ import socketserver
 import os
 import json
 import sys
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -43,6 +44,8 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.serve_file_list()
         elif path == '/api/downloaded-jobs':
             self.serve_downloaded_jobs()
+        elif path.startswith('/api/job-content/'):
+            self.serve_job_content(path)
         elif path.startswith('/data/'):
             # Serve data files (JSON, etc)
             self.serve_data_file(path)
@@ -184,6 +187,8 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Length', len(response))
             self.end_headers()
             self.wfile.write(response)
+        except Exception as e:
+            self.send_error(500, str(e))
 
     def serve_downloaded_jobs(self):
         """Serve list of job IDs that have downloaded HTML pages."""
@@ -226,6 +231,116 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(response)
         except Exception as e:
             self.send_error(500, str(e))
+
+    def extract_main_content(self, html_content):
+        """Extract main job posting content from HTML."""
+        try:
+            # Remove scripts and styles
+            html_content = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
+            html_content = re.sub(r'<style[^>]*>.*?</style>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
+            
+            # Try to find main article/content area
+            # Look for common patterns: main, article, .content, .job-posting, etc.
+            patterns = [
+                r'<main[^>]*>(.*?)</main>',
+                r'<article[^>]*>(.*?)</article>',
+                r'<div[^>]*class="[^"]*(?:content|main|posting)[^"]*"[^>]*>(.*?)</div>',
+                r'<section[^>]*>(.*?)</section>',
+            ]
+            
+            main_content = None
+            for pattern in patterns:
+                match = re.search(pattern, html_content, flags=re.DOTALL | re.IGNORECASE)
+                if match:
+                    main_content = match.group(1)
+                    break
+            
+            # Fallback: find the largest div or section
+            if not main_content:
+                divs = re.findall(r'<div[^>]*>(.*?)</div>', html_content, flags=re.DOTALL | re.IGNORECASE)
+                if divs:
+                    main_content = max(divs, key=len)
+            
+            # If still nothing, use body content
+            if not main_content:
+                body_match = re.search(r'<body[^>]*>(.*?)</body>', html_content, flags=re.DOTALL | re.IGNORECASE)
+                if body_match:
+                    main_content = body_match.group(1)
+                else:
+                    main_content = html_content
+            
+            # Clean up: remove navigation, footer, headers, sidebars
+            main_content = re.sub(r'<nav[^>]*>.*?</nav>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+            main_content = re.sub(r'<footer[^>]*>.*?</footer>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+            main_content = re.sub(r'<header[^>]*>.*?</header>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+            main_content = re.sub(r'<aside[^>]*>.*?</aside>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+            
+            # Remove common non-content elements
+            main_content = re.sub(r'<div[^>]*class="[^"]*(?:sidebar|nav|menu|ad)[^"]*"[^>]*>.*?</div>', '', main_content, flags=re.DOTALL | re.IGNORECASE)
+            
+            # Clean up excessive whitespace
+            main_content = re.sub(r'\s+', ' ', main_content)
+            main_content = main_content.strip()
+            
+            return main_content[:50000] if main_content else ""  # Limit to 50KB
+        except Exception as e:
+            return ""
+
+    def serve_job_content(self, path):
+        """Serve extracted main content from a job HTML page."""
+        try:
+            # Extract post_id from path (/api/job-content/12345 -> 12345)
+            post_id = path.split('/')[-1]
+            
+            # Security: validate post_id is numeric
+            if not post_id.isdigit():
+                self.send_error(400)
+                return
+            
+            project_root = Path(__file__).parent.parent
+            
+            # Try to find the job file in organized structure (ID-based)
+            # Format: data/job-pages/XXX/YYY/job_XXXYYYY.html
+            job_file = None
+            job_pages_dir = project_root / 'data' / 'job-pages'
+            
+            if job_pages_dir.exists():
+                # Search for the job file recursively
+                for found_file in job_pages_dir.rglob(f'job_{post_id}.html'):
+                    job_file = found_file
+                    break
+            
+            if not job_file or not job_file.exists():
+                self.send_error(404)
+                return
+            
+            # Security: verify file is within job-pages directory
+            try:
+                job_file.resolve().relative_to(job_pages_dir.resolve())
+            except ValueError:
+                self.send_error(403)
+                return
+            
+            # Read HTML file
+            with open(job_file, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            # Extract main content
+            main_content = self.extract_main_content(html_content)
+            
+            # Return as JSON
+            response = json.dumps({
+                'post_id': post_id,
+                'content': main_content,
+                'success': bool(main_content)
+            }).encode('utf-8')
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Length', len(response))
+            self.end_headers()
+            self.wfile.write(response)
         except Exception as e:
             self.send_error(500, str(e))
     
