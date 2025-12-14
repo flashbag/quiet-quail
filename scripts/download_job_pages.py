@@ -11,6 +11,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from datetime import datetime
 import requests
 from urllib.parse import urlparse
 
@@ -23,6 +24,31 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+def log_cron_stats(new_jobs_found, downloaded, successful, failed, gen_count, skip_count, fail_count):
+    """
+    Log cron run statistics to a structured stats file for future analysis.
+    Stats are appended as JSON lines to allow easy parsing and querying.
+    """
+    stats_file = Path("logs/cron_stats.jsonl")
+    stats_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    stats = {
+        "timestamp": datetime.now().isoformat(),
+        "new_jobs_found": new_jobs_found,
+        "jobs_downloaded": downloaded,
+        "download_successful": successful,
+        "download_failed": failed,
+        "metadata_generated": gen_count,
+        "metadata_skipped": skip_count,
+        "metadata_failed": fail_count
+    }
+    
+    try:
+        with open(stats_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(stats, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logging.error(f"Failed to write stats file: {e}")
 
 def get_job_page_path(post_id):
     """Get canonical path for a job page based on ID."""
@@ -207,7 +233,74 @@ def get_new_jobs_from_json(json_base_dir='data'):
     return new_jobs
 
 
-def download_job_page(job_data):
+def generate_all_job_metadata(skip_existing=True):
+    """
+    Generate metadata JSON files for all downloaded jobs.
+    This ensures backward compatibility and keeps metadata up-to-date.
+    
+    Args:
+        skip_existing: If True, skip jobs that already have metadata JSON
+    
+    Returns:
+        Tuple of (generated_count, skipped_count, failed_count)
+    """
+    job_pages_dir = Path('data') / 'job-pages'
+    if not job_pages_dir.exists():
+        return 0, 0, 0
+    
+    html_files = list(job_pages_dir.rglob('job_*.html'))
+    if not html_files:
+        return 0, 0, 0
+    
+    generated = 0
+    skipped = 0
+    failed = 0
+    
+    logging.debug(f"Generating metadata for {len(html_files)} jobs...")
+    
+    for html_file in html_files:
+        # Extract post_id from filename
+        try:
+            post_id = int(html_file.stem.split('_')[1])
+        except (ValueError, IndexError):
+            failed += 1
+            continue
+        
+        # Check if metadata JSON already exists
+        json_file = html_file.with_name(f"job_{post_id}.json")
+        if json_file.exists() and skip_existing:
+            skipped += 1
+            continue
+        
+        # Generate metadata
+        try:
+            with open(html_file, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            is_closed = is_job_closed(post_id)
+            main_content = extract_main_content(html_content)
+            
+            metadata = {
+                'post_id': post_id,
+                'url': '',
+                'position': 'Unknown',
+                'unit_name': 'Unknown',
+                'status': 'closed' if is_closed else 'open',
+                'is_closed': is_closed,
+                'content': main_content,
+                'downloaded_at': str(int(html_file.stat().st_mtime))
+            }
+            
+            # Write metadata JSON
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+            
+            generated += 1
+        except Exception as e:
+            logging.debug(f"Failed to generate metadata for job {post_id}: {e}")
+            failed += 1
+    
+    return generated, skipped, failed
     """
     Download individual job page and create metadata JSON.
     Returns (success: bool, file_path: str or None)
@@ -281,9 +374,11 @@ def main():
     
     # Get new jobs
     new_jobs = get_new_jobs_from_json()
+    new_jobs_found = len(new_jobs)
     
     if not new_jobs:
         logging.info("No new jobs to download")
+        log_cron_stats(0, 0, 0, 0, 0, 0, 0)
         return
     
     # Limit to first 100 to avoid excessive downloads
@@ -311,11 +406,24 @@ def main():
     
     logging.info("=" * 60)
     logging.info(f"Download Summary:")
-    logging.info(f"  Successful: {successful}/{len(jobs_to_download)}")
+    logging.info(f"  New Jobs Found: {new_jobs_found}")
+    logging.info(f"  Downloaded: {successful}/{len(jobs_to_download)}")
     logging.info(f"  Failed: {failed}/{len(jobs_to_download)}")
     if len(new_jobs) > MAX_DOWNLOADS:
         logging.info(f"  Remaining: {len(new_jobs) - MAX_DOWNLOADS} jobs")
     logging.info("=" * 60)
+    
+    # Generate metadata for all jobs (backward compatibility + updates)
+    logging.info("Generating/updating metadata files...")
+    gen_count, skip_count, fail_count = generate_all_job_metadata(skip_existing=True)
+    logging.info(f"Metadata Summary:")
+    logging.info(f"  Generated: {gen_count}")
+    logging.info(f"  Skipped: {skip_count}")
+    logging.info(f"  Failed: {fail_count}")
+    logging.info("=" * 60)
+    
+    # Log cron statistics for historical tracking
+    log_cron_stats(new_jobs_found, successful, successful, failed, gen_count, skip_count, fail_count)
 
 
 if __name__ == '__main__':
