@@ -7,6 +7,8 @@
 # 3. Logging output
 # 4. Handling errors gracefully
 
+set -e  # Exit on error
+
 # Get the directory where this script is located (config dir)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Get the project root (parent of config dir)
@@ -16,53 +18,92 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 LOG_FILE="$PROJECT_ROOT/cron.log"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Append to log file
-exec >> "$LOG_FILE" 2>&1
+# Log function that writes to both stdout and log file
+log_message() {
+    local msg="$1"
+    echo "[${TIMESTAMP}] ${msg}" | tee -a "$LOG_FILE"
+}
 
-echo "========================================"
-echo "[$TIMESTAMP] Running Quiet-Quail cron job"
-echo "========================================"
-echo "Project root: $PROJECT_ROOT"
-echo "Current directory: $(pwd)"
-echo "Current user: $(whoami)"
-echo ""
+log_message "========================================"
+log_message "Starting Quiet-Quail cron job"
+log_message "========================================"
+log_message "Project root: $PROJECT_ROOT"
+log_message "Current user: $(whoami)"
+log_message "Host: $(hostname)"
+log_message ""
+
+# Check if project root exists
+if [ ! -d "$PROJECT_ROOT" ]; then
+    log_message "ERROR: Project root not found at $PROJECT_ROOT"
+    exit 1
+fi
 
 # Check if virtual environment exists
 if [ ! -d "$PROJECT_ROOT/venv" ]; then
-    echo "ERROR: Virtual environment not found at $PROJECT_ROOT/venv"
-    echo "Please run setup_server.sh first"
+    log_message "ERROR: Virtual environment not found at $PROJECT_ROOT/venv"
+    log_message "Please run setup_server.sh first"
     exit 1
 fi
 
 # Change to project root
-cd "$PROJECT_ROOT"
+cd "$PROJECT_ROOT" || {
+    log_message "ERROR: Failed to change to project root: $PROJECT_ROOT"
+    exit 1
+}
+log_message "Changed to: $(pwd)"
 
 # Activate virtual environment
-echo "Activating virtual environment..."
-source venv/bin/activate
-if [ $? -ne 0 ]; then
-    echo "ERROR: Failed to activate virtual environment"
+log_message "Activating virtual environment..."
+if ! source venv/bin/activate 2>&1; then
+    log_message "ERROR: Failed to activate virtual environment"
     exit 1
 fi
 
-echo "Python version: $(python3 --version)"
-echo ""
+log_message "Python version: $(python3 --version)"
+log_message "Python path: $(which python3)"
+log_message ""
 
-# Run the fetch_lobbyx.py script
-echo "Running fetch_lobbyx.py..."
-python3 scripts/fetch_lobbyx.py
+# Check if fetch_lobbyx.py exists
+if [ ! -f "$PROJECT_ROOT/scripts/fetch_lobbyx.py" ]; then
+    log_message "ERROR: fetch_lobbyx.py not found at $PROJECT_ROOT/scripts/fetch_lobbyx.py"
+    exit 1
+fi
+
+# Run the fetch_lobbyx.py script with timeout
+log_message "Running fetch_lobbyx.py..."
+log_message "Starting at: $(date '+%Y-%m-%d %H:%M:%S')"
+
+# Set a timeout of 1 hour (3600 seconds) to prevent hanging
+set +e
+timeout 3600 python3 scripts/fetch_lobbyx.py 2>&1 | tee -a "$LOG_FILE"
 FETCH_RESULT=$?
+set -e
+
+log_message "Ended at: $(date '+%Y-%m-%d %H:%M:%S')"
 
 if [ $FETCH_RESULT -eq 0 ]; then
-    echo "✓ fetch_lobbyx.py completed successfully"
+    log_message "✓ fetch_lobbyx.py completed successfully"
+    log_message ""
+    log_message "========================================"
+    log_message "Cron job completed successfully"
+    log_message "========================================"
+    log_message ""
+    exit 0
+elif [ $FETCH_RESULT -eq 124 ]; then
+    log_message "✗ fetch_lobbyx.py timed out (exceeded 1 hour)"
+    log_message ""
+    log_message "========================================"
+    log_message "Cron job failed: timeout"
+    log_message "========================================"
+    log_message ""
+    exit 1
 else
-    echo "✗ fetch_lobbyx.py failed with exit code: $FETCH_RESULT"
+    log_message "✗ fetch_lobbyx.py failed with exit code: $FETCH_RESULT"
+    log_message ""
+    log_message "========================================"
+    log_message "Cron job failed: exit code $FETCH_RESULT"
+    log_message "========================================"
+    log_message ""
     exit $FETCH_RESULT
 fi
 
-echo ""
-echo "[$TIMESTAMP] Cron job completed"
-echo "========================================"
-echo ""
-
-exit 0

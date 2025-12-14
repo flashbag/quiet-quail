@@ -26,7 +26,13 @@ with sync_playwright() as p:
     # Navigate to the target URL
     url = "https://lobbyx.army/?sphere=it"
     logging.debug(f"Navigating to URL: {url}")
-    page.goto(url)
+    try:
+        # Add 30-second timeout to prevent hanging indefinitely
+        page.goto(url, timeout=30000, wait_until='domcontentloaded')
+        logging.debug(f"Successfully navigated to {url}")
+    except Exception as e:
+        logging.error(f"Failed to navigate to URL: {e}")
+        raise
 
     # Click the #load-more button until it has the class "done"
     while True:
