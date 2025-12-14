@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiet-Quail Job Postings Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐦</text></svg>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -449,6 +450,16 @@
             background: #555;
             color: white;
         }
+
+        /* Prevent FOUC - hide content until fully loaded */
+        body {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        body.loaded {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -838,6 +849,8 @@
                     displayJobTracking();  // Calculate job appearances first
                     displayJobs();         // Then display jobs with appearance data
                     setupFilters();
+                    // Mark page as loaded to show content
+                    document.body.classList.add('loaded');
                 } else {
                     throw new Error('No data files loaded');
                 }
@@ -845,6 +858,8 @@
             } catch (e) {
                 console.error('Error loading data:', e);
                 showErrorMessage();
+                // Mark page as loaded even on error to show error message
+                document.body.classList.add('loaded');
             }
         }
 
@@ -1228,7 +1243,7 @@
         }
 
         async function showJobContent(postId, event) {
-            """Fetch and display extracted job content in a modal."""
+            // Fetch and display extracted job content in a modal
             if (event) {
                 event.preventDefault();
                 event.stopPropagation();
