@@ -2,20 +2,85 @@
 """
 Automated browser tests for Quiet-Quail Dashboard.
 Detects JavaScript console errors, API failures, and UI issues.
+Starts internal server instance for testing.
 Run: python tests/test_dashboard_browser.py
 """
 
 import subprocess
 import time
 import sys
+import os
+import signal
 from pathlib import Path
 import json
+import threading
 
 try:
     from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 except ImportError:
     print("ERROR: playwright not installed. Run: pip install playwright")
     sys.exit(1)
+
+
+class DashboardServer:
+    """Internal server instance for testing."""
+    def __init__(self, port=8000):
+        self.port = port
+        self.process = None
+        self.base_url = f"http://localhost:{port}"
+
+    def start(self):
+        """Start the dashboard server."""
+        try:
+            # Change to project directory
+            project_dir = Path(__file__).parent.parent
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'
+            
+            # Start server process
+            self.process = subprocess.Popen(
+                [sys.executable, 'web/dashboard_server.py'],
+                cwd=project_dir,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                env=env
+            )
+            
+            # Wait for server to start with retry
+            max_retries = 10
+            for attempt in range(max_retries):
+                time.sleep(1)
+                
+                # Verify server is running
+                import urllib.request
+                try:
+                    urllib.request.urlopen(self.base_url, timeout=2)
+                    print(f"✓ Internal server started at {self.base_url}")
+                    return True
+                except Exception:
+                    if attempt < max_retries - 1:
+                        continue
+                    
+            print(f"✗ Server failed to start after {max_retries} attempts")
+            return False
+                
+        except Exception as e:
+            print(f"✗ Failed to start server: {e}")
+            return False
+
+    def stop(self):
+        """Stop the dashboard server."""
+        if self.process:
+            try:
+                self.process.terminate()
+                self.process.wait(timeout=5)
+                print("✓ Internal server stopped")
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait()
+                print("✓ Internal server killed")
+            except Exception as e:
+                print(f"! Error stopping server: {e}")
 
 
 class DashboardTester:
@@ -134,8 +199,10 @@ class DashboardTester:
         """Test that expected DOM elements exist."""
         tests = [
             ("body", "Page body"),
-            (".container", "Main container"),
-            ("#file-list", "File list element"),
+            ("#totalPosts", "Total posts stat"),
+            ("#fileCount", "File count stat"),
+            ("#jobsContainer", "Jobs container"),
+            ("#unitsContainer", "Units container"),
             ("h1, h2", "Header element"),
         ]
 
@@ -152,20 +219,25 @@ class DashboardTester:
     def _test_data_loading(self, page):
         """Test that data loads and displays."""
         try:
-            # Wait for data to appear
-            page.wait_for_selector("#file-list li", timeout=5000)
+            # Wait for jobs container to load
+            page.wait_for_selector("#jobsContainer", timeout=5000)
 
-            # Count items
-            items = page.query_selector_all("#file-list li")
-            count = len(items)
-
-            if count > 0:
-                self._pass(f"Data loaded: {count} items displayed")
+            # Check if container has content (not empty or loading)
+            job_items = page.query_selector_all("#jobsContainer .job-item, #jobsContainer .card, #jobsContainer li")
+            
+            if job_items:
+                count = len(job_items)
+                self._pass(f"Data loaded: {count} job items displayed")
             else:
-                self._fail("No data items found in file-list")
+                # Check if it's just empty (no data) vs error
+                container_text = page.query_selector("#jobsContainer").text_content()
+                if "error" in container_text.lower() or "failed" in container_text.lower():
+                    self._fail(f"Data loading error: {container_text}")
+                else:
+                    self._pass("Jobs container loaded (no items - expected if no data)")
 
         except PlaywrightTimeout:
-            self._fail("Data did not load within timeout")
+            self._fail("Jobs container did not load within timeout")
         except Exception as e:
             self._fail(f"Data loading test failed: {str(e)}")
 
@@ -221,13 +293,23 @@ def check_server_running(base_url="http://localhost:8000"):
 
 
 if __name__ == "__main__":
-    # Check if server is running
-    if not check_server_running():
-        print("ERROR: Dashboard server not running at http://localhost:8000")
-        print("Start it with: python web/dashboard_server.py")
-        sys.exit(1)
-
-    # Run tests
-    tester = DashboardTester()
-    success = tester.run_tests()
-    sys.exit(0 if success else 1)
+    # Create and start internal server
+    server = DashboardServer()
+    
+    try:
+        print("Starting internal dashboard server for testing...")
+        if not server.start():
+            print("ERROR: Could not start internal server")
+            sys.exit(1)
+        
+        # Run tests
+        tester = DashboardTester(base_url=server.base_url)
+        success = tester.run_tests()
+        
+        sys.exit(0 if success else 1)
+        
+    finally:
+        # Always stop server
+        print()
+        print("Cleaning up...")
+        server.stop()

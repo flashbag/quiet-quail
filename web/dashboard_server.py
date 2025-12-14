@@ -80,8 +80,11 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
     def serve_file_list(self):
         """Serve the file list as JSON."""
         try:
+            # Get project root
+            project_root = Path(__file__).parent.parent
+            
             # Try to use pre-generated API file first
-            api_file = Path('api/list-json-files.json')
+            api_file = project_root / 'api' / 'list-json-files.json'
             if api_file.exists():
                 with open(api_file, 'r') as f:
                     response = f.read().encode('utf-8')
@@ -93,16 +96,20 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(response)
                 return
             
-            # Fallback: scan data directory
-            data_dir = Path('data')
+            # Fallback: scan data directory for JSON files
+            data_dir = project_root / 'data'
             files_list = []
             
             if data_dir.exists():
+                # Find all JSON files in data directory (recursive)
                 for json_file in sorted(data_dir.rglob('*.json'), reverse=True):
-                    # Skip consolidated_unique.json in the listing (handle separately)
-                    if json_file.name == 'consolidated_unique.json':
+                    # Skip analysis directory JSON files and consolidated files
+                    if 'analysis' in json_file.parts or json_file.name in ['consolidated_unique.json', 'downloaded_urls.json']:
                         continue
-                    relative_path = json_file.relative_to('.')
+                    # Skip job-pages directory (these are HTML not analysis JSON)
+                    if 'job-pages' in json_file.parts:
+                        continue
+                    relative_path = json_file.relative_to(project_root)
                     files_list.append({
                         'path': str(relative_path),
                         'name': json_file.stem,
