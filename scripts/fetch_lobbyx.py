@@ -143,7 +143,8 @@ def should_fetch_main_page(skip_recent=True, recent_hours=1):
     
     if recent_files:
         sample_file = recent_files[0]
-        logging.info(f"Found main page cached from {sample_file[1]:.0f} minutes ago ({sample_file[0]}), "
+        age_minutes = sample_file[1] * 60
+        logging.info(f"Found main page cached from {age_minutes:.0f} minutes ago ({sample_file[0]}), "
                     f"skipping fetch (cache)")
         return False
     else:
