@@ -140,43 +140,58 @@ class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(500, str(e))
     
     def serve_file_list(self):
-        """Serve the file list as JSON."""
+        """Serve the file list as JSON.
+        
+        Prioritizes consolidated data to avoid duplication.
+        Only lists daily output files if consolidated file doesn't exist.
+        """
         try:
             # Get project root
             project_root = Path(__file__).parent.parent
             
-            # Try to use pre-generated API file first
-            api_file = project_root / 'api' / 'list-json-files.json'
-            if api_file.exists():
-                with open(api_file, 'r') as f:
-                    response = f.read().encode('utf-8')
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Content-Length', len(response))
-                self.end_headers()
-                self.wfile.write(response)
-                return
-            
-            # Fallback: scan data directory for JSON files
-            data_dir = project_root / 'data'
-            files_list = []
-            
-            if data_dir.exists():
-                # Find all JSON files in data directory (recursive)
-                for json_file in sorted(data_dir.rglob('*.json'), reverse=True):
-                    # Skip analysis directory JSON files and consolidated files
-                    if 'analysis' in json_file.parts or json_file.name in ['consolidated_unique.json', 'downloaded_urls.json']:
-                        continue
-                    # Skip job-pages directory (these are HTML not analysis JSON)
-                    if 'job-pages' in json_file.parts:
-                        continue
-                    relative_path = json_file.relative_to(project_root)
-                    files_list.append({
-                        'path': str(relative_path),
-                        'name': json_file.stem,
-                        'date': str(json_file.parent)
-                    })
+            # Check for consolidated file first (preferred)
+            consolidated_file = project_root / 'data' / 'consolidated_unique.json'
+            if consolidated_file.exists():
+                # If consolidated exists, return only that (no duplication)
+                files_list = [{
+                    'path': 'data/consolidated_unique.json',
+                    'name': 'consolidated_unique',
+                    'date': 'consolidated',
+                    'consolidated': True
+                }]
+            else:
+                # Fallback: Try to use pre-generated API file
+                api_file = project_root / 'api' / 'list-json-files.json'
+                if api_file.exists():
+                    with open(api_file, 'r') as f:
+                        response = f.read().encode('utf-8')
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.send_header('Content-Length', len(response))
+                    self.end_headers()
+                    self.wfile.write(response)
+                    return
+                
+                # Fallback: scan data directory for JSON files
+                data_dir = project_root / 'data'
+                files_list = []
+                
+                if data_dir.exists():
+                    # Find all JSON files in data directory (recursive)
+                    for json_file in sorted(data_dir.rglob('*.json'), reverse=True):
+                        # Skip analysis directory JSON files and consolidated files
+                        if 'analysis' in json_file.parts or json_file.name in ['consolidated_unique.json', 'downloaded_urls.json']:
+                            continue
+                        # Skip job-pages directory (these are HTML not analysis JSON)
+                        if 'job-pages' in json_file.parts:
+                            continue
+                        relative_path = json_file.relative_to(project_root)
+                        files_list.append({
+                            'path': str(relative_path),
+                            'name': json_file.stem,
+                            'date': str(json_file.parent)
+                        })
             
             response = json.dumps({
                 'files': files_list,
