@@ -64,15 +64,24 @@ def print_single_stat(stat):
         print("⏭️  SKIPPED (Recent cache found - no jobs to check)")
         return
     
+    # Check if this is Stage 2 format (parsing stats only)
+    if 'parsed_jobs' in stat and 'new_jobs_found' not in stat:
+        print(f"{'='*70}")
+        print(f"Parsed Jobs:       {stat.get('parsed_jobs', 0):>3}")
+        if stat.get('note'):
+            print(f"Note:              {stat['note']}")
+        return
+    
+    # Old format (Stage 3 - downloading stats)
     print(f"{'='*70}")
-    print(f"Jobs Found:        {stat['new_jobs_found']:>3}")
-    print(f"Downloaded:        {stat['jobs_downloaded']:>3} ✓")
-    print(f"  Success:         {stat['download_successful']:>3}")
-    print(f"  Failed:          {stat['download_failed']:>3} ✗")
+    print(f"Jobs Found:        {stat.get('new_jobs_found', 0):>3}")
+    print(f"Downloaded:        {stat.get('jobs_downloaded', 0):>3} ✓")
+    print(f"  Success:         {stat.get('download_successful', 0):>3}")
+    print(f"  Failed:          {stat.get('download_failed', 0):>3} ✗")
     print(f"Metadata:")
-    print(f"  Generated:       {stat['metadata_generated']:>3} ✓")
-    print(f"  Skipped:         {stat['metadata_skipped']:>3}")
-    print(f"  Failed:          {stat['metadata_failed']:>3} ✗")
+    print(f"  Generated:       {stat.get('metadata_generated', 0):>3} ✓")
+    print(f"  Skipped:         {stat.get('metadata_skipped', 0):>3}")
+    print(f"  Failed:          {stat.get('metadata_failed', 0):>3} ✗")
 
 
 def main():
