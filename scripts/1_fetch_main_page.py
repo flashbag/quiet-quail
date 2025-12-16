@@ -49,7 +49,11 @@ def fetch_main_page():
 
         # Click the #load-more button until it has the class "done"
         logging.debug("Loading all content...")
-        while True:
+        max_attempts = 100  # Prevent infinite loops
+        attempt = 0
+        
+        while attempt < max_attempts:
+            attempt += 1
             try:
                 load_more_button = page.locator("#load-more")
                 button_class = load_more_button.get_attribute("class")
@@ -57,13 +61,17 @@ def fetch_main_page():
                 if "done" in button_class:
                     logging.info("✓ All content loaded")
                     break
-                    
-                logging.debug("Clicking load-more button...")
+                
+                logging.debug(f"Clicking load-more button (attempt {attempt})...")
                 load_more_button.click()
                 page.wait_for_timeout(2000)  # Wait for AJAX requests to complete
+                
             except Exception as e:
-                logging.debug(f"No more load-more button: {e}")
+                logging.debug(f"No more load-more button or error: {e}")
                 break
+        
+        if attempt >= max_attempts:
+            logging.warning(f"Reached maximum attempts ({max_attempts}), stopping load-more clicks")
 
         # Create a three-level directory structure for data files
         subfolder1 = time.strftime("%Y")

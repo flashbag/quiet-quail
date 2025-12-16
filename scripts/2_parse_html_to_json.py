@@ -15,6 +15,23 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from datetime import datetime
 
+def log_cron_stats(parsed_count):
+    """Log parsing statistics to cron stats file."""
+    stats_file = Path("logs/cron_stats.jsonl")
+    stats_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    stats = {
+        "timestamp": datetime.now().isoformat(),
+        "parsed_jobs": parsed_count,
+    }
+    
+    try:
+        with open(stats_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(stats, ensure_ascii=False) + "\n")
+        logging.debug(f"Logged cron stats: {parsed_count} jobs parsed")
+    except Exception as e:
+        logging.error(f"Failed to write cron stats: {e}")
+
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
@@ -177,6 +194,10 @@ def main():
     
     logging.info(f"✓ Processed {processed_files}/{len(html_files)} files")
     logging.info(f"✓ Extracted {total_posts} total posts")
+    
+    # Log statistics for cron tracking
+    log_cron_stats(total_posts)
+    
     logging.info("STAGE 2 Complete\n")
 
 
