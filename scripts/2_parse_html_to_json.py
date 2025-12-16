@@ -22,14 +22,13 @@ def log_cron_stats(parsed_count):
     
     stats = {
         "timestamp": datetime.now().isoformat(),
-        "jobs_found": parsed_count,
         "parsed_jobs": parsed_count,
     }
     
     try:
         with open(stats_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(stats, ensure_ascii=False) + "\n")
-        logging.debug(f"Logged cron stats: {parsed_count} jobs found")
+        logging.debug(f"Logged cron stats: {parsed_count} jobs parsed")
     except Exception as e:
         logging.error(f"Failed to write cron stats: {e}")
 
