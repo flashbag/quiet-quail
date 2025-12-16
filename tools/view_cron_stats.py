@@ -67,7 +67,7 @@ def print_single_stat(stat):
     # Check if this is Stage 2 format (parsing stats only)
     if 'parsed_jobs' in stat and 'new_jobs_found' not in stat:
         print(f"{'='*70}")
-        print(f"Parsed Jobs:       {stat.get('parsed_jobs', 0):>3}")
+        print(f"Jobs Found:        {stat.get('jobs_found', 0):>3}")
         if stat.get('note'):
             print(f"Note:              {stat['note']}")
         return
