@@ -134,10 +134,10 @@ def parse_html_file(html_path):
 
 
 def main():
-    """Parse all HTML files to JSON."""
+    """Parse the latest HTML file to JSON."""
     
     logging.info("=" * 70)
-    logging.info("STAGE 2: Parsing HTML to JSON")
+    logging.info("STAGE 2: Parsing HTML to JSON (Latest File Only)")
     logging.info("=" * 70)
     
     base_path = Path('data')
@@ -146,54 +146,52 @@ def main():
         logging.error(f"Directory {base_path} does not exist")
         return
     
-    # Find all HTML files
-    html_files = list(base_path.rglob('*.html'))
+    # Find all HTML files (output_*.html pattern - from Stage 1)
+    html_files = list(base_path.rglob('output_*.html'))
     
     if not html_files:
         logging.warning(f"No HTML files found in {base_path}")
         return
     
-    logging.info(f"Found {len(html_files)} HTML files to process")
+    # Sort by modification time and get the latest
+    html_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+    latest_html = html_files[0]
+    
+    logging.info(f"Found {len(html_files)} HTML files, processing latest: {latest_html.relative_to(base_path)}")
+    
+    # Calculate relative path
+    relative_path = latest_html.relative_to(base_path)
+    
+    # Create corresponding JSON path
+    json_file = base_path / relative_path.with_suffix('.json')
+    
+    # Create output directory if needed
+    json_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    logging.debug(f"Processing: {relative_path}")
+    
+    # Parse HTML and extract posts
+    posts = parse_html_file(latest_html)
     
     total_posts = 0
-    processed_files = 0
     
-    for html_file in html_files:
-        # Calculate relative path
-        relative_path = html_file.relative_to(base_path)
+    if posts:
+        # Create output data
+        output_data = {
+            'source_file': str(relative_path),
+            'parsed_at': datetime.now().isoformat(),
+            'post_count': len(posts),
+            'posts': posts
+        }
         
-        # Create corresponding JSON path
-        json_file = base_path / relative_path.with_suffix('.json')
+        # Write JSON file
+        with open(json_file, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, ensure_ascii=False, indent=2)
         
-        # Create output directory if needed
-        json_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        logging.debug(f"Processing: {relative_path}")
-        
-        # Parse HTML and extract posts
-        posts = parse_html_file(html_file)
-        
-        if posts:
-            # Create output data
-            output_data = {
-                'source_file': str(relative_path),
-                'parsed_at': datetime.now().isoformat(),
-                'post_count': len(posts),
-                'posts': posts
-            }
-            
-            # Write JSON file
-            with open(json_file, 'w', encoding='utf-8') as f:
-                json.dump(output_data, f, ensure_ascii=False, indent=2)
-            
-            logging.debug(f"  ✓ Extracted {len(posts)} posts → {json_file}")
-            total_posts += len(posts)
-            processed_files += 1
-        else:
-            logging.debug(f"  No posts found in this file")
-    
-    logging.info(f"✓ Processed {processed_files}/{len(html_files)} files")
-    logging.info(f"✓ Extracted {total_posts} total posts")
+        logging.info(f"✓ Extracted {len(posts)} posts → {json_file}")
+        total_posts = len(posts)
+    else:
+        logging.warning(f"No posts found in latest HTML file")
     
     # Log statistics for cron tracking
     log_cron_stats(total_posts)
