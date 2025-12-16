@@ -63,34 +63,34 @@ log_message "Python version: $(python3 --version)"
 log_message "Python path: $(which python3)"
 log_message ""
 
-# Check if fetch_lobbyx.py exists
-if [ ! -f "$PROJECT_ROOT/scripts/fetch_lobbyx.py" ]; then
-    log_message "ERROR: fetch_lobbyx.py not found at $PROJECT_ROOT/scripts/fetch_lobbyx.py"
+# Check if pipeline script exists
+if [ ! -f "$PROJECT_ROOT/run_scraper_pipeline.py" ]; then
+    log_message "ERROR: run_scraper_pipeline.py not found at $PROJECT_ROOT/run_scraper_pipeline.py"
     exit 1
 fi
 
-# Run the fetch_lobbyx.py script with timeout
-log_message "Running fetch_lobbyx.py..."
+# Run the scraper pipeline with timeout
+log_message "Running scraper pipeline..."
 log_message "Starting at: $(date '+%Y-%m-%d %H:%M:%S')"
 
 # Set a timeout of 1 hour (3600 seconds) to prevent hanging
 set +e
-timeout 3600 python3 scripts/fetch_lobbyx.py 2>&1 | tee -a "$LOG_FILE"
-FETCH_RESULT=$?
+timeout 3600 python3 run_scraper_pipeline.py 2>&1 | tee -a "$LOG_FILE"
+PIPELINE_RESULT=$?
 set -e
 
 log_message "Ended at: $(date '+%Y-%m-%d %H:%M:%S')"
 
-if [ $FETCH_RESULT -eq 0 ]; then
-    log_message "✓ fetch_lobbyx.py completed successfully"
+if [ $PIPELINE_RESULT -eq 0 ]; then
+    log_message "✓ Scraper pipeline completed successfully"
     log_message ""
     log_message "========================================"
     log_message "Cron job completed successfully"
     log_message "========================================"
     log_message ""
     exit 0
-elif [ $FETCH_RESULT -eq 124 ]; then
-    log_message "✗ fetch_lobbyx.py timed out (exceeded 1 hour)"
+elif [ $PIPELINE_RESULT -eq 124 ]; then
+    log_message "✗ Scraper pipeline timed out (exceeded 1 hour)"
     log_message ""
     log_message "========================================"
     log_message "Cron job failed: timeout"
@@ -98,12 +98,12 @@ elif [ $FETCH_RESULT -eq 124 ]; then
     log_message ""
     exit 1
 else
-    log_message "✗ fetch_lobbyx.py failed with exit code: $FETCH_RESULT"
+    log_message "✗ Scraper pipeline failed with exit code: $PIPELINE_RESULT"
     log_message ""
     log_message "========================================"
-    log_message "Cron job failed: exit code $FETCH_RESULT"
+    log_message "Cron job failed: exit code $PIPELINE_RESULT"
     log_message "========================================"
     log_message ""
-    exit $FETCH_RESULT
+    exit $PIPELINE_RESULT
 fi
 
