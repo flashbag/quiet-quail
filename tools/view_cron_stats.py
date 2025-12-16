@@ -56,7 +56,7 @@ def format_timestamp(ts_str):
 def print_single_stat(stat):
     """Pretty print a single stat entry."""
     print(f"\n{'='*70}")
-    print(f"⏰ {format_timestamp(stat['timestamp'])}")
+    print(f"⏰ {format_timestamp(stat.get('timestamp', 'unknown'))}")
     
     # Check if this was a skipped run
     if stat.get('note') == 'skipped - recent cache found':
@@ -72,16 +72,24 @@ def print_single_stat(stat):
             print(f"Note:              {stat['note']}")
         return
     
-    # Old format (Stage 3 - downloading stats)
+    # Stage 3 format (downloading stats)
+    if 'new_jobs_found' in stat:
+        print(f"{'='*70}")
+        print(f"Jobs Found:        {stat.get('new_jobs_found', 0):>3}")
+        print(f"Downloaded:        {stat.get('jobs_downloaded', 0):>3} ✓")
+        print(f"  Success:         {stat.get('download_successful', 0):>3}")
+        print(f"  Failed:          {stat.get('download_failed', 0):>3} ✗")
+        print(f"Metadata:")
+        print(f"  Generated:       {stat.get('metadata_generated', 0):>3} ✓")
+        print(f"  Skipped:         {stat.get('metadata_skipped', 0):>3}")
+        print(f"  Failed:          {stat.get('metadata_failed', 0):>3} ✗")
+        return
+    
+    # Unknown format - just show all fields
     print(f"{'='*70}")
-    print(f"Jobs Found:        {stat.get('new_jobs_found', 0):>3}")
-    print(f"Downloaded:        {stat.get('jobs_downloaded', 0):>3} ✓")
-    print(f"  Success:         {stat.get('download_successful', 0):>3}")
-    print(f"  Failed:          {stat.get('download_failed', 0):>3} ✗")
-    print(f"Metadata:")
-    print(f"  Generated:       {stat.get('metadata_generated', 0):>3} ✓")
-    print(f"  Skipped:         {stat.get('metadata_skipped', 0):>3}")
-    print(f"  Failed:          {stat.get('metadata_failed', 0):>3} ✗")
+    for key, value in stat.items():
+        if key != 'timestamp':
+            print(f"{key:.<30} {value}")
 
 
 def main():
@@ -126,14 +134,22 @@ def main():
             print("📊 Summary (Last {} Runs)".format(len(selected_stats)))
             print(f"{'='*70}")
             
-            total_found = sum(s['new_jobs_found'] for s in selected_stats)
-            total_downloaded = sum(s['jobs_downloaded'] for s in selected_stats)
-            total_failed = sum(s['download_failed'] for s in selected_stats)
+            # Only include Stage 3 stats in summary
+            stage3_stats = [s for s in selected_stats if 'new_jobs_found' in s]
             
-            print(f"Total Jobs Found:   {total_found}")
-            print(f"Total Downloaded:   {total_downloaded} ✓")
-            print(f"Total Failed:       {total_failed} ✗")
-            print(f"Success Rate:       {100*total_downloaded/(total_downloaded+total_failed) if (total_downloaded+total_failed)>0 else 0:.1f}%")
+            if stage3_stats:
+                total_found = sum(s.get('new_jobs_found', 0) for s in stage3_stats)
+                total_downloaded = sum(s.get('jobs_downloaded', 0) for s in stage3_stats)
+                total_failed = sum(s.get('download_failed', 0) for s in stage3_stats)
+                
+                print(f"Total Jobs Found:   {total_found}")
+                print(f"Total Downloaded:   {total_downloaded} ✓")
+                print(f"Total Failed:       {total_failed} ✗")
+                
+                success_rate = 100*total_downloaded/(total_downloaded+total_failed) if (total_downloaded+total_failed)>0 else 0
+                print(f"Success Rate:       {success_rate:.1f}%")
+            else:
+                print("No Stage 3 (download) statistics in selected range")
         
         print(f"\n{'='*70}\n")
 
