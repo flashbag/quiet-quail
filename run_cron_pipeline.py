@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Cron Pipeline - Stages 1 & 2 Only
+Cron Pipeline - Stages 1, 2 & 3
 
-Runs only the first two stages of the pipeline:
+Runs the first three stages of the pipeline:
   1. Fetch the main jobs listing page
   2. Parse HTML to JSON
+  3. Download new job pages HTML files
 
 This is optimized for hourly cron execution.
-Stages 3 & 4 (downloading individual pages and generating API) are run separately.
+Stage 4 (generating API) is run separately.
 """
 
 import subprocess
@@ -27,9 +28,12 @@ def run_stage(stage_num, script_name):
     logging.info(f"{'='*70}\n")
     
     try:
+        # Stage 3 needs more time for downloading
+        timeout = 1800 if stage_num == 3 else 600  # 30 min for Stage 3, 10 min for others
+        
         result = subprocess.run(
             ["python3", f"scripts/{script_name}"],
-            timeout=600  # 10 minute timeout per stage
+            timeout=timeout
         )
         
         if result.returncode != 0:
@@ -39,7 +43,7 @@ def run_stage(stage_num, script_name):
         return True
     
     except subprocess.TimeoutExpired:
-        logging.error(f"Stage {stage_num} timed out after 10 minutes")
+        logging.error(f"Stage {stage_num} timed out after {timeout//60} minutes")
         return False
     except Exception as e:
         logging.error(f"Stage {stage_num} error: {e}")
@@ -47,15 +51,16 @@ def run_stage(stage_num, script_name):
 
 
 def main():
-    """Run cron pipeline (stages 1-2 only)."""
+    """Run cron pipeline (stages 1-3)."""
     
     logging.info("\n" + "="*70)
-    logging.info("QUIET-QUAIL CRON PIPELINE (Fetch & Parse Only)")
+    logging.info("QUIET-QUAIL CRON PIPELINE (Fetch, Parse & Download)")
     logging.info("="*70)
     
     stages = [
         (1, "1_fetch_main_page.py"),
         (2, "2_parse_html_to_json.py"),
+        (3, "3_download_job_pages.py"),
     ]
     
     failed_stages = []
