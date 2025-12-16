@@ -111,18 +111,24 @@ def extract_main_content(html_content):
 
 
 def get_new_jobs_from_json():
-    """Collect all job URLs from JSON files created in Stage 2."""
+    """Collect all job URLs from consolidated JSON file or all daily JSON files."""
     new_jobs = []
     
-    # Find all JSON files in data directory
-    base_path = Path('data')
-    json_files = list(base_path.rglob('output_*.json'))
+    # Try consolidated file first (more efficient, no duplicates)
+    consolidated_path = Path('data/consolidated_unique.json')
+    if consolidated_path.exists():
+        logging.info("Using consolidated_unique.json")
+        json_files = [consolidated_path]
+    else:
+        # Fallback to individual daily files
+        base_path = Path('data')
+        json_files = list(base_path.rglob('output_*.json'))
     
     if not json_files:
         logging.info("No JSON files found")
         return new_jobs
     
-    logging.info(f"Found {len(json_files)} JSON files to check")
+    logging.info(f"Found {len(json_files)} JSON file(s) to check")
     
     for json_file in json_files:
         try:

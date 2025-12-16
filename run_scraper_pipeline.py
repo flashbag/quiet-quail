@@ -66,6 +66,21 @@ def main():
             failed_stages.append((stage_num, script_name))
             # Continue to next stage even if this one fails
     
+    # Consolidate jobs after Stage 2
+    logging.info("\n" + "="*70)
+    logging.info("CONSOLIDATING PARSED JOBS")
+    logging.info("="*70 + "\n")
+    
+    try:
+        result = subprocess.run(
+            ["python3", "tools/consolidate_jobs.py", "--stats"],
+            timeout=300
+        )
+        if result.returncode != 0:
+            logging.warning("Job consolidation failed")
+    except Exception as e:
+        logging.warning(f"Could not consolidate jobs: {e}")
+    
     # Summary
     logging.info("\n" + "="*70)
     logging.info("PIPELINE COMPLETE")
