@@ -4,13 +4,15 @@ Stage 1: Fetch the main jobs listing page
 
 Downloads the complete jobs listing from lobbyx.army with all content loaded.
 Saves as data/YYYY/MM/DD/output_HHMMSS.html
-No caching - always fetches fresh data on each run.
+
+Caching: If a file was downloaded within 1 hour, uses cache instead of re-downloading.
 """
 
 import time
 import os
 import logging
 from datetime import datetime
+from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 # Configure logging
@@ -23,12 +25,58 @@ logging.basicConfig(
     ]
 )
 
+def check_cache(cache_hours=1):
+    """
+    Check if a recent HTML file exists within cache window.
+    
+    Args:
+        cache_hours: Hours threshold for cache validity (default: 1)
+    
+    Returns:
+        Path to cached file if valid, None otherwise
+    """
+    base_path = Path('data')
+    
+    if not base_path.exists():
+        return None
+    
+    # Find all output_*.html files
+    html_files = list(base_path.rglob('output_*.html'))
+    
+    if not html_files:
+        return None
+    
+    # Sort by modification time and check the latest
+    html_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+    latest_file = html_files[0]
+    
+    # Check if file is within cache window
+    current_time = time.time()
+    file_mtime = latest_file.stat().st_mtime
+    age_hours = (current_time - file_mtime) / 3600
+    
+    if age_hours < cache_hours:
+        return latest_file
+    
+    return None
+
 def fetch_main_page():
-    """Fetch the main jobs listing page using Playwright."""
+    """Fetch the main jobs listing page using Playwright, with 1-hour cache."""
     
     logging.info("=" * 70)
     logging.info("STAGE 1: Fetching main jobs listing page")
     logging.info("=" * 70)
+    
+    # Check cache first
+    cached_file = check_cache(cache_hours=1)
+    if cached_file:
+        age_minutes = ((time.time() - cached_file.stat().st_mtime) / 60)
+        logging.info(f"✓ Using cached file from {age_minutes:.0f} minutes ago")
+        logging.info(f"✓ File: {cached_file.relative_to(Path('data'))}")
+        logging.info("STAGE 1 Complete (cached)\n")
+        return
+    
+    logging.info("No recent cache found, fetching fresh data...")
     
     # Start Playwright
     with sync_playwright() as p:
