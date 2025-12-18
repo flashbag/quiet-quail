@@ -1,0 +1,7 @@
+{
+  "remote_host": "192.168.1.100",
+  "remote_user": "ubuntu",
+  "remote_path": "/home/ubuntu/Quiet-Quail/data",
+  "local_path": "./data",
+  "remote_port": 22
+}

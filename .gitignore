@@ -48,6 +48,11 @@ ENV/
 /etc/resolv.conf.backup*
 
 # Backups from migration
+backups/
+
+# Sync configuration (contains sensitive remote server info)
+.sync_config.json
+
 saved_html_backup/
 saved_json_backup/
 job_pages_backup/

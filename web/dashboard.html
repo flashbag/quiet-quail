@@ -517,6 +517,8 @@
                 <div class="col-md-4">
                     <select class="form-select" id="sortFilter">
                         <option value="">Sort by...</option>
+                        <option value="date_newest">Fetched Date (Newest First)</option>
+                        <option value="date_oldest">Fetched Date (Oldest First)</option>
                         <option value="position">Position (A-Z)</option>
                         <option value="unit">Unit (A-Z)</option>
                         <option value="appearances_desc">Most Appearances</option>
@@ -1035,7 +1037,7 @@
                 return;
             }
 
-            const jobsHTML = posts.slice(0, 50).map(post => {
+            const jobsHTML = posts.map(post => {
                 // Get appearance count for this job
                 const appearanceCount = window.jobAppearances && window.jobAppearances[post.post_id] 
                     ? window.jobAppearances[post.post_id] 
@@ -1092,7 +1094,7 @@
             document.getElementById('jobsContainer').innerHTML = `<div class="jobs-grid">${jobsHTML}</div>`;
             
             // Check for closed jobs asynchronously (after display)
-            const jobsToCheck = posts.slice(0, 50).filter(post => window.downloadedJobs && window.downloadedJobs[post.post_id]);
+            const jobsToCheck = posts.filter(post => window.downloadedJobs && window.downloadedJobs[post.post_id]);
             console.log(`Checking ${jobsToCheck.length} jobs for closed status`);
             
             jobsToCheck.forEach(async post => {
@@ -1160,7 +1162,27 @@
                 });
 
                 // Apply sorting
-                if (sortValue === 'position') {
+                if (sortValue === 'date_newest') {
+                    filtered.sort((a, b) => {
+                        const dateA = window.jobAppearanceDates && window.jobAppearanceDates[a.post_id] && window.jobAppearanceDates[a.post_id][0]
+                            ? window.jobAppearanceDates[a.post_id][0].fullDate
+                            : new Date(0);
+                        const dateB = window.jobAppearanceDates && window.jobAppearanceDates[b.post_id] && window.jobAppearanceDates[b.post_id][0]
+                            ? window.jobAppearanceDates[b.post_id][0].fullDate
+                            : new Date(0);
+                        return dateB - dateA;
+                    });
+                } else if (sortValue === 'date_oldest') {
+                    filtered.sort((a, b) => {
+                        const dateA = window.jobAppearanceDates && window.jobAppearanceDates[a.post_id] && window.jobAppearanceDates[a.post_id][0]
+                            ? window.jobAppearanceDates[a.post_id][0].fullDate
+                            : new Date(0);
+                        const dateB = window.jobAppearanceDates && window.jobAppearanceDates[b.post_id] && window.jobAppearanceDates[b.post_id][0]
+                            ? window.jobAppearanceDates[b.post_id][0].fullDate
+                            : new Date(0);
+                        return dateA - dateB;
+                    });
+                } else if (sortValue === 'position') {
                     filtered.sort((a, b) => a.position.localeCompare(b.position));
                 } else if (sortValue === 'unit') {
                     filtered.sort((a, b) => a.unit_name.localeCompare(b.unit_name));
