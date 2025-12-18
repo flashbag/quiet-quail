@@ -13,7 +13,10 @@ echo ""
 
 # Total jobs
 if [ -f "$CONSOLIDATED_FILE" ]; then
-    total_jobs=$(python -c "import json; data = json.load(open('$CONSOLIDATED_FILE')); print(data.get('total_unique_jobs', 'N/A'))" 2>/dev/null || echo "N/A")
+    total_jobs=$(python3 -c "import json; data = json.load(open('$CONSOLIDATED_FILE')); print(data.get('total_unique_jobs', 'N/A'))" 2>/dev/null)
+    if [ -z "$total_jobs" ]; then
+        total_jobs="N/A"
+    fi
     echo "✓ Total unique jobs: $total_jobs"
 else
     echo "✗ Consolidated data not found"
@@ -21,7 +24,7 @@ fi
 
 # Last sync time
 if [ -f "$SYNC_LOG" ]; then
-    last_sync=$(python -c "
+    last_sync=$(python3 -c "
 import json
 try:
     with open('$SYNC_LOG') as f:
@@ -29,9 +32,12 @@ try:
         if logs:
             last = logs[-1]
             print(f\"{last.get('status', 'N/A')} - {last.get('timestamp', 'N/A')}\")
-except:
+except Exception as e:
     print('N/A')
-" 2>/dev/null || echo "N/A")
+" 2>/dev/null)
+    if [ -z "$last_sync" ]; then
+        last_sync="N/A"
+    fi
     echo "📅 Last sync: $last_sync"
 else
     echo "📅 Last sync: Never"
@@ -39,7 +45,10 @@ fi
 
 # Sync configured
 if [ -f "$CONFIG_FILE" ]; then
-    remote=$(python -c "import json; data = json.load(open('$CONFIG_FILE')); print(f\"{data.get('remote_user', '?')}@{data.get('remote_host', '?')}\")" 2>/dev/null || echo "N/A")
+    remote=$(python3 -c "import json; data = json.load(open('$CONFIG_FILE')); print(f\"{data.get('remote_user', '?')}@{data.get('remote_host', '?')}\")" 2>/dev/null)
+    if [ -z "$remote" ]; then
+        remote="N/A"
+    fi
     echo "✓ Sync configured: $remote"
 else
     echo "✗ Sync not configured"
@@ -63,7 +72,10 @@ if [ -f "$PROJECT_ROOT/web/dashboard.html" ]; then
 fi
 
 echo ""
-echo "Commands:"
-echo "  ./sync.sh sync          - Sync data from remote VPS"
-echo "  python tools/consolidate_jobs.py --stats  - Show consolidation stats"
-echo "  python web/dashboard_server.py  - Start dashboard server"
+echo "Quick Commands:"
+echo "  ./sync.sh sync       - Sync data from remote VPS"
+echo "  ./summary.sh         - Show this summary"
+echo ""
+echo "Advanced:"
+echo "  consolidate_jobs.py --stats  - Consolidation statistics"
+echo "  dashboard_server.py          - Start web dashboard"
