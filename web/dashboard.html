@@ -1165,21 +1165,29 @@
                 if (sortValue === 'date_newest') {
                     filtered.sort((a, b) => {
                         const dateA = window.jobAppearanceDates && window.jobAppearanceDates[a.post_id] && window.jobAppearanceDates[a.post_id][0]
-                            ? window.jobAppearanceDates[a.post_id][0].fullDate
-                            : new Date(0);
+                            ? (window.jobAppearanceDates[a.post_id][0].fullDate instanceof Date 
+                                ? window.jobAppearanceDates[a.post_id][0].fullDate.getTime()
+                                : new Date(window.jobAppearanceDates[a.post_id][0].fullDate).getTime())
+                            : 0;
                         const dateB = window.jobAppearanceDates && window.jobAppearanceDates[b.post_id] && window.jobAppearanceDates[b.post_id][0]
-                            ? window.jobAppearanceDates[b.post_id][0].fullDate
-                            : new Date(0);
+                            ? (window.jobAppearanceDates[b.post_id][0].fullDate instanceof Date 
+                                ? window.jobAppearanceDates[b.post_id][0].fullDate.getTime()
+                                : new Date(window.jobAppearanceDates[b.post_id][0].fullDate).getTime())
+                            : 0;
                         return dateB - dateA;
                     });
                 } else if (sortValue === 'date_oldest') {
                     filtered.sort((a, b) => {
                         const dateA = window.jobAppearanceDates && window.jobAppearanceDates[a.post_id] && window.jobAppearanceDates[a.post_id][0]
-                            ? window.jobAppearanceDates[a.post_id][0].fullDate
-                            : new Date(0);
+                            ? (window.jobAppearanceDates[a.post_id][0].fullDate instanceof Date 
+                                ? window.jobAppearanceDates[a.post_id][0].fullDate.getTime()
+                                : new Date(window.jobAppearanceDates[a.post_id][0].fullDate).getTime())
+                            : 0;
                         const dateB = window.jobAppearanceDates && window.jobAppearanceDates[b.post_id] && window.jobAppearanceDates[b.post_id][0]
-                            ? window.jobAppearanceDates[b.post_id][0].fullDate
-                            : new Date(0);
+                            ? (window.jobAppearanceDates[b.post_id][0].fullDate instanceof Date 
+                                ? window.jobAppearanceDates[b.post_id][0].fullDate.getTime()
+                                : new Date(window.jobAppearanceDates[b.post_id][0].fullDate).getTime())
+                            : 0;
                         return dateA - dateB;
                     });
                 } else if (sortValue === 'position') {
